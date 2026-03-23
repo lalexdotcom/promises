@@ -416,11 +416,11 @@ export const pool = Object.assign(
      * To run without a concurrency limit, pass `{ concurrency: Infinity }` via options.
      *
      * @param commands - Array of zero-argument functions each returning a Promise.
-     * @param options - Optional pool configuration. Set `concurrency: Infinity` to run all concurrently without limit.
+     * @param options - Optional pool configuration. `concurrency` is optional (default: 10); set to `Infinity` for unlimited concurrency.
      */
     parallel: <T extends PromiseFunction[]>(
       commands: [...T],
-      options?: PoolOptions,
+      options?: Omit<PoolOptions, 'concurrency'> & { concurrency?: number },
     ): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> => {
       if (!commands.length)
         return Promise.resolve([]) as Promise<{
