@@ -1,7 +1,7 @@
-# promises
+# @lalex/promises
 
-[![npm version](https://img.shields.io/npm/v/promises.svg)](https://www.npmjs.com/package/promises)
-[![license](https://img.shields.io/npm/l/promises.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/%40lalex%2Fpromises.svg)](https://www.npmjs.com/package/@lalex/promises)
+[![license](https://img.shields.io/npm/l/%40lalex%2Fpromises.svg)](./LICENSE)
 
 > Zero-dependency TypeScript promise pool + async utilities. Control concurrency,
 > batch parallel/serial execution, and compose async workflows with typed results.
@@ -9,17 +9,17 @@
 ## Installation
 
 ```sh
-npm install promises
+npm install @lalex/promises
 ```
 
 ```sh
-pnpm add promises
+pnpm add @lalex/promises
 ```
 
 ## Quick Start
 
 ```js
-import { pool } from 'promises';
+import { pool } from '@lalex/promises';
 
 const imagePool = pool(3); // max 3 concurrent
 
@@ -148,7 +148,7 @@ Use `pool.on(event, callback)` or `pool.once(event, callback)` to listen for lif
 Process a list of URLs with a bounded pool and track progress via events.
 
 ```js
-import { pool } from 'promises';
+import { pool } from '@lalex/promises';
 
 const urls = [/* ... */];
 let completed = 0;
@@ -176,7 +176,7 @@ console.log(`\nAll ${results.length} jobs complete`);
 Use `wait()` to add delay between requests and keep concurrency low.
 
 ```js
-import { pool, wait } from 'promises';
+import { pool, wait } from '@lalex/promises';
 
 const userIds = [1, 2, 3, /* ... */];
 
@@ -199,7 +199,7 @@ const users = await rateLimitedPool.close();
 heterogeneous arrays produce a typed tuple result with no casting needed.
 
 ```js
-import { pool } from 'promises';
+import { pool } from '@lalex/promises';
 
 // TypeScript infers: Promise<[User, Settings, Notification[]]>
 const [user, settings, notifications] = await pool.parallel([
@@ -218,7 +218,7 @@ const [created, confirmed] = await pool.serial([
 ### Utility functions
 
 ```js
-import { wait, timeout, unsync, slice } from 'promises';
+import { wait, timeout, unsync, slice } from '@lalex/promises';
 
 // Pause execution for 500ms
 await wait(500);
