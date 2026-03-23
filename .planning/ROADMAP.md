@@ -52,7 +52,7 @@
 - [ ] Edge cases covered: empty arrays for `parallel`/`serial`/`slice`, rejection propagation for `timeout`
 
 **Plans:**
-1. Write `tests/pool.test.ts` — TEST-01 through TEST-06
+2/2 plans complete
 2. Write `tests/utils.test.ts` — TEST-07 through TEST-10
 
 ---
