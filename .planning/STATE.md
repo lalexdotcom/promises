@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Publication-Ready Library
 status: completed
-last_updated: "2026-03-23T21:00:00.000Z"
+last_updated: "2026-03-23T21:05:00.000Z"
 completed: "2026-03-23T20:45:00.000Z"
 progress:
   total_phases: 4
@@ -47,3 +47,4 @@ A zero-dependency TypeScript promise utility library (`PromisePool` + async help
 | QK-01 | Update package name to @lalex/promises and version to 1.0.0-rc.0 | ✅ Complete | 2026-03-23 |
 | QK-02 | Fix TypeScript errors in tests (enqueue() timeout parameter) | ✅ Complete | 2026-03-23 |
 | QK-03 | Update package name references in README to @lalex/promises | ✅ Complete | 2026-03-23 |
+| QK-04 | Set pool.parallel() default concurrency to 10 (add override option) | ✅ Complete | 2026-03-23 |
