@@ -23,7 +23,7 @@
 - [ ] Codebase has no dead code (`pending` duplicate and commented `emit('next')` removed)
 
 **Plans:**
-1. Fix runtime bugs — patch BUG-01 and BUG-02 in `src/pool.ts` and `src/utils.ts`
+2/2 plans complete
 2. Clean up dead code and improve types — BUG-03, BUG-04, TYPES-01, TYPES-02, TYPES-03
 
 ---

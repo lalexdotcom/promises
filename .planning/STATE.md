@@ -1,14 +1,27 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: — Publication-Ready Library
+status: executing
+last_updated: "2026-03-23T19:03:21.302Z"
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 0
+---
+
 # STATE — promises
 
 ## Current Phase
 
-**Phase:** 1
-**Status:** Planned
-**Goal:** Source code has correct runtime behavior and accurate TypeScript types — all known bugs fixed, type inference accurate, dead code removed.
+**Phase:** 2
+**Status:** Not Started
+**Goal:** All public behaviors are verified by an automated test suite that passes with zero failures.
 
 ## Next Up
 
-Run `/gsd-execute-phase 1` to start execution.
+Run `/gsd-plan-phase 2` to plan Phase 2: Test Coverage.
 
 ## Project Summary
 
@@ -16,4 +29,4 @@ A zero-dependency TypeScript promise utility library (`PromisePool` + async help
 
 ## Phase History
 
-(none yet)
+- **Phase 1 — Correctness** ✅ Complete (2026-03-23) — BUG-01/02/03/04 fixed, TYPES-01/02/03 improved
