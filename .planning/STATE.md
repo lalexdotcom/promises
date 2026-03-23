@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Publication-Ready Library
 status: completed
-last_updated: "2026-03-23T20:45:00.000Z"
+last_updated: "2026-03-23T20:50:00.000Z"
 completed: "2026-03-23T20:45:00.000Z"
 progress:
   total_phases: 4
@@ -39,3 +39,9 @@ A zero-dependency TypeScript promise utility library (`PromisePool` + async help
 - **Phase 2 — Test Coverage** ✅ Complete (2026-03-23) — 31 tests passing (21 pool + 10 utils), BUG-01/02 validated
 - **Phase 3 — Documentation** ✅ Complete (2026-03-23) — 22 JSDoc blocks, 10 inline comments, README with examples, UAT passed
 - **Phase 4 — Publication Prep** ✅ Complete (2026-03-23) — Metadata complete, private flag removed, files whitelist verified, npm publish --dry-run passed
+
+## Quick Tasks Completed
+
+| Task | Description | Status | Completed |
+|------|-------------|--------|-----------|
+| QK-01 | Update package name to @lalex/promises and version to 1.0.0-rc.0 | ✅ Complete | 2026-03-23 |
