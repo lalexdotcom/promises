@@ -71,8 +71,10 @@
 - [ ] TypeScript hover tooltips (via JSDoc) show meaningful descriptions for every public function and type in an IDE
 - [ ] `runNext()`, the lifecycle state machine, and event dispatch logic each have clarifying comments that explain the non-obvious decisions
 
-**Plans:**
-1. Write README and add JSDoc + inline comments — DOCS-01, DOCS-02, DOCS-03
+**Plans:** 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md — Export PoolOptions/PoolError, JSDoc all public symbols, inline WHY-comments, write README
 
 ---
 
