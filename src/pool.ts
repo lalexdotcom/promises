@@ -62,7 +62,10 @@ export interface PromisePool {
    *   {@link TimeoutError} if the promise does not settle within this duration.
    * @throws {Error} If the pool is already closed or already resolved.
    */
-  enqueue<P extends PromiseFunction>(promiseGenerator: P, timeout?: number): void;
+  enqueue<P extends PromiseFunction>(
+    promiseGenerator: P,
+    timeout?: number,
+  ): void;
 
   /**
    * Seals the queue so no further promises can be enqueued, then returns
