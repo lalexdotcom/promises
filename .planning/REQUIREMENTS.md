@@ -1,0 +1,85 @@
+# REQUIREMENTS.md — promises v1
+
+## v1 Requirements
+
+### Bug Fixes
+
+- [ ] **BUG-01** : Le garde `Number.isNaN(timeout) && timeout > 0` dans `runNext()` est toujours `false` — corriger en `!Number.isNaN(timeout) && timeout > 0` pour que le timeout par promesse fonctionne réellement
+- [ ] **BUG-02** : Dans `timeout()` (`src/utils.ts`), une résolution tardive appelle `rej()` sans argument — ignorer silencieusement la résolution tardive ; ajouter un `.catch()` sur `p` pour propager ses rejets correctement
+- [ ] **BUG-03** : Retirer le getter `pending` dupliqué (identique à `waiting`, absent de l'interface) ou l'ajouter à l'interface publique avec une intention claire
+- [ ] **BUG-04** : Retirer ou décommenter les appels `this.#emit('next')` commentés dans `promiseDone` et `promiseRejected` — code mort qui génère de la confusion
+
+### TypeScript & API
+
+- [ ] **TYPES-01** : `pool.parallel()` retourne un type inféré : `Promise<T[]>` pour un tableau homogène `(() => Promise<T>)[]`, et un tuple `Promise<[R1, R2, ...]>` pour les appels hétérogènes (via overloads, à la `Promise.all`)
+- [ ] **TYPES-02** : `pool.serial()` : même amélioration de typage que TYPES-01
+- [ ] **TYPES-03** : L'interface `PromisePool` expose des getters avec des types stricts (pas de `any`) pour les propriétés `promise`, `running`, `waiting`
+
+### Tests
+
+- [ ] **TEST-01** : Tests du lifecycle de `PromisePool` — création, `start()`, `enqueue()`, `close()`, état final, résultat retourné
+- [ ] **TEST-02** : Tests de la limitation de concurrence — vérifier que jamais plus de N promesses s'exécutent simultanément
+- [ ] **TEST-03** : Tests du système d'événements — `on()` reçoit tous les événements, `once()` reçoit uniquement le premier, comportement sur `start`, `full`, `next`, `close`, `available`
+- [ ] **TEST-04** : Tests de la gestion d'erreurs — `rejectOnError: false` continue avec erreur dans résultat, `rejectOnError: true` rejette le pool principal
+- [ ] **TEST-05** : Tests du timeout par promesse via `enqueue(fn, timeout)` — après le fix BUG-01, vérifier que `TimeoutError` est bien levée et propagée
+- [ ] **TEST-06** : Tests des helpers `pool.parallel()` et `pool.serial()` — résultats corrects, ordre préservé dans `serial`, comportement sur tableau vide
+- [ ] **TEST-07** : Tests de `wait(delay)` — résout après le délai attendu
+- [ ] **TEST-08** : Tests de `timeout(promise, delay)` — après le fix BUG-02, vérifier TimeoutError sur expiry, résolution correcte avant expiry, rejet du promise source propagé
+- [ ] **TEST-09** : Tests de `unsync(fn, delay?)` — exécute de façon asynchrone, propage les erreurs de `fn`
+- [ ] **TEST-10** : Tests de `slice(fn, size)` — traitement correct par chunks, préservation de l'ordre, comportement sur tableau vide
+
+### Documentation
+
+- [ ] **DOCS-01** : README avec sections : installation, usage de base du pool, exemples de `parallel`/`serial`, exemples des utilitaires, section API résumée, badge npm, licence
+- [ ] **DOCS-02** : JSDoc complet sur tous les types publics (`PromisePool`, `PoolOptions`, `PoolError`, `TimeoutError`) et toutes les fonctions exportées (`pool`, `wait`, `timeout`, `unsync`, `slice`)
+- [ ] **DOCS-03** : Commentaires inline sur la logique complexe : scheduler `runNext()`, machine à états lifecycle, système d'événements, logique de promiseDone/promiseRejected
+
+### Préparation npm
+
+- [ ] **NPM-01** : `package.json` complété — `description`, `keywords`, `homepage`, `repository`, `license`, `author`, `bugs`
+- [ ] **NPM-02** : Retirer `"private": true` du `package.json`
+- [ ] **NPM-03** : Vérifier et compléter le champ `files` (liste blanche npm) — s'assurer que `dist/`, `README.md`, `LICENSE` sont inclus et rien d'autre
+- [ ] **NPM-04** : Build universel Node.js + browser — vérifier que le bundle n'utilise que des globals universels (`setTimeout`, `Promise`, `console`), pas d'APIs Node-only ; ajuster `rslib.config.ts` si nécessaire
+
+## v2 Requirements (deferred)
+
+- AsyncIterator / stream de résultats pour le pool générique — DX à préciser, défer post-publication
+- Magic link login, OAuth — non applicable (library, pas d'auth)
+- CHANGELOG automatisé
+
+## Out of Scope
+
+- Publication npm effective — pipeline de release externe à l'auteur
+- Git tags / versioning automatisé — idem
+- CJS build — ESM only est conforme aux cibles runtime
+- CHANGELOG — non demandé pour ce milestone
+- AsyncIterator en v1 — design DX à affiner, trop risqué pour ce milestone
+
+## Traceability
+
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| BUG-01 | — | Pending |
+| BUG-02 | — | Pending |
+| BUG-03 | — | Pending |
+| BUG-04 | — | Pending |
+| TYPES-01 | — | Pending |
+| TYPES-02 | — | Pending |
+| TYPES-03 | — | Pending |
+| TEST-01 | — | Pending |
+| TEST-02 | — | Pending |
+| TEST-03 | — | Pending |
+| TEST-04 | — | Pending |
+| TEST-05 | — | Pending |
+| TEST-06 | — | Pending |
+| TEST-07 | — | Pending |
+| TEST-08 | — | Pending |
+| TEST-09 | — | Pending |
+| TEST-10 | — | Pending |
+| DOCS-01 | — | Pending |
+| DOCS-02 | — | Pending |
+| DOCS-03 | — | Pending |
+| NPM-01 | — | Pending |
+| NPM-02 | — | Pending |
+| NPM-03 | — | Pending |
+| NPM-04 | — | Pending |
