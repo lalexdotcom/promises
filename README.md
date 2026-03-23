@@ -64,14 +64,16 @@ Returns a `PromisePool` with the following interface:
 
 ### `pool.parallel(commands, options?)`
 
-Runs all promise factories concurrently (no concurrency limit) and resolves with results in the original input order.
+Runs all promise factories concurrently with a configurable concurrency limit (default: 10) and resolves with results in the original input order.
+
+To run without a concurrency limit, pass `{ concurrency: Infinity }` via options.
 
 Return type is inferred from the input tuple: heterogeneous arrays yield `Promise<[T1, T2, ...]>`, homogeneous arrays yield `Promise<T[]>`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | commands | `(() => Promise)[]` | — | Promise factories to run concurrently |
-| options | `PoolOptions` | — | Optional pool configuration |
+| options | `PoolOptions` | — | Optional pool configuration. Set `concurrency: Infinity` to run all concurrently without limit |
 
 Returns: `Promise<Results>` — typed tuple for heterogeneous, array for homogeneous.
 
@@ -198,15 +200,21 @@ const users = await rateLimitedPool.close();
 `pool.parallel()` and `pool.serial()` infer the result type from the input tuple —
 heterogeneous arrays produce a typed tuple result with no casting needed.
 
+By default, `pool.parallel()` runs with concurrency limit of 10. Pass `{ concurrency: Infinity }` to run all concurrently without limit.
+
 ```js
 import { pool } from '@lalex/promises';
 
 // TypeScript infers: Promise<[User, Settings, Notification[]]>
+// Runs with default concurrency = 10
 const [user, settings, notifications] = await pool.parallel([
   () => fetchUser(id),
   () => fetchSettings(id),
   () => fetchNotifications(id),
 ]);
+
+// Run with no concurrency limit (all at once)
+const results = await pool.parallel(commands, { concurrency: Infinity });
 
 // pool.serial() guarantees sequential ordering — useful for dependent operations
 const [created, confirmed] = await pool.serial([

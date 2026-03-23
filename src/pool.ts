@@ -8,6 +8,7 @@ type QueuedPromise = {
 };
 
 const DEFAULT_CONCURRENCY = 10;
+const DEFAULT_PARALLEL_CONCURRENCY = 10;
 const DEFAULT_NAME = 'pool';
 type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available';
 
@@ -388,7 +389,7 @@ class PromisePoolImpl implements PromisePool {
  * Creates a new {@link PromisePool} with the given concurrency and options.
  *
  * Also exposes two static batch-execution helpers:
- * - `pool.parallel(commands)` — runs all commands concurrently, no limit
+ * - `pool.parallel(commands)` — runs all commands with concurrency limit (default: 10)
  * - `pool.serial(commands)` — runs all commands one at a time
  *
  * Both helpers infer typed results: heterogeneous arrays yield a tuple
@@ -406,14 +407,16 @@ export const pool = Object.assign(
     new PromisePoolImpl({ ...options, concurrency }),
   {
     /**
-     * Runs all promise factories concurrently (no concurrency limit) and
-     * resolves with results in the original input order.
+     * Runs all promise factories concurrently with a configurable concurrency limit
+     * (default: 10). Resolves with results in the original input order.
      *
      * Return type is inferred from the input tuple type:
      * heterogeneous → `Promise<[T1, T2, ...]>`, homogeneous → `Promise<T[]>`.
      *
+     * To run without a concurrency limit, pass `{ concurrency: Infinity }` via options.
+     *
      * @param commands - Array of zero-argument functions each returning a Promise.
-     * @param options - Optional pool configuration.
+     * @param options - Optional pool configuration. Set `concurrency: Infinity` to run all concurrently without limit.
      */
     parallel: <T extends PromiseFunction[]>(
       commands: [...T],
@@ -424,7 +427,7 @@ export const pool = Object.assign(
           [K in keyof T]: Awaited<ReturnType<T[K]>>;
         }>;
       const parallelPool = new PromisePoolImpl({
-        concurrency: Number.POSITIVE_INFINITY,
+        concurrency: options?.concurrency ?? DEFAULT_PARALLEL_CONCURRENCY,
         ...options,
       });
       for (const cmd of commands) parallelPool.enqueue(cmd);
