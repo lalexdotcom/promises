@@ -1,6 +1,6 @@
 {
-  "name": "promises",
-  "version": "1.0.0",
+  "name": "@lalex/promises",
+  "version": "1.0.0-rc.0",
   "description": "Async utilities library: concurrency-bounded promise pools, timeouts, and chunking. Works universally in Node.js 18+ and modern browsers.",
   "keywords": [
     "promises",
