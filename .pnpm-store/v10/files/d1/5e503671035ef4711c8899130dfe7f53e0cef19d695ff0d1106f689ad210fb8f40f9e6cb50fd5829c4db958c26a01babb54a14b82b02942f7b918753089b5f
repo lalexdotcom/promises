@@ -1,0 +1,43 @@
+import "node:module";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+import "./4411.js";
+import { logger as logger_logger, color as logger_color } from "./6830.js";
+async function loadBrowserModule(options = {}) {
+    const coreVersion = "0.9.4";
+    const { projectRoots = [] } = options;
+    let browserModule;
+    let browserVersion;
+    const resolutionBases = [
+        ...projectRoots.map((projectRoot)=>pathToFileURL(`${projectRoot}/package.json`).href),
+        pathToFileURL(`${process.cwd()}/package.json`).href,
+        import.meta.url
+    ];
+    const uniqueBases = [
+        ...new Set(resolutionBases)
+    ];
+    for (const base of uniqueBases)try {
+        const userRequire = createRequire(base);
+        const browserPath = userRequire.resolve('@rstest/browser/internal');
+        const browserPkgPath = userRequire.resolve('@rstest/browser/package.json');
+        browserModule = await import(pathToFileURL(browserPath).href);
+        const browserPkg = userRequire(browserPkgPath);
+        browserVersion = browserPkg.version;
+        if (browserVersion !== coreVersion) {
+            logger_logger.error(`\n${logger_color.red('Error:')} Version mismatch between ${logger_color.cyan('@rstest/core')} and ${logger_color.cyan('@rstest/browser')}.\n`);
+            logger_logger.error(`  @rstest/core version:    ${logger_color.yellow(coreVersion)}\n  @rstest/browser version: ${logger_color.yellow(browserVersion)}\n`);
+            logger_logger.error(`Please ensure both packages have the same version:\n\n  ${logger_color.cyan(`npm install @rstest/browser@${coreVersion}`)}\n`);
+            process.exit(1);
+        }
+        return browserModule;
+    } catch (error) {
+        const err = error;
+        if ('ERR_MODULE_NOT_FOUND' === err.code || 'MODULE_NOT_FOUND' === err.code) continue;
+        throw error;
+    }
+    logger_logger.error(`\n${logger_color.red('Error:')} Browser mode requires ${logger_color.cyan('@rstest/browser')} to be installed.\n`);
+    logger_logger.error(`Please install it with:\n\n  ${logger_color.cyan(`npm install @rstest/browser@${coreVersion}`)}\n`);
+    logger_logger.error(`Or if using pnpm:\n\n  ${logger_color.cyan(`pnpm add @rstest/browser@${coreVersion}`)}\n`);
+    process.exit(1);
+}
+export { loadBrowserModule };

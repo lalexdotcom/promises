@@ -1,0 +1,25 @@
+{
+  "name": "@ast-grep/napi-linux-arm64-gnu",
+  "version": "0.37.0",
+  "requiresBuild": false,
+  "files": {
+    "package.json": {
+      "checkedAt": 1774289985053,
+      "integrity": "sha512-zatNpsoGG/Ue3VwlSC0Ptn8WH3kK3i3y4Xc2Q3EfZmaU6o9CTer1C49IdsOfCmLL0teUqVZp80mLevKzGsuE4w==",
+      "mode": 420,
+      "size": 647
+    },
+    "README.md": {
+      "checkedAt": 1774289985054,
+      "integrity": "sha512-ZvIGIyAQ+FoF62MZ5swKv+zSQDvLBAmAfQhgVdrI5b8lD9HRkAUvs0e5P2BCEeIwIO8Y2S8m7oaoU8teoYp+qg==",
+      "mode": 420,
+      "size": 105
+    },
+    "ast-grep-napi.linux-arm64-gnu.node": {
+      "checkedAt": 1774289985061,
+      "integrity": "sha512-1KiFYiQyhFBYS6FLjMUAavF+85Q9vwPW5fmXt7tR3omPPpM+tl7t2nIv2DJFoIcHr/4QGoZlBoIatpmYo77YBA==",
+      "mode": 420,
+      "size": 6264984
+    }
+  }
+}

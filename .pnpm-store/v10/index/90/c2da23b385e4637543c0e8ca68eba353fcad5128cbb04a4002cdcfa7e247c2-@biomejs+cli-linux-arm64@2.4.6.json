@@ -1,0 +1,25 @@
+{
+  "name": "@biomejs/cli-linux-arm64",
+  "version": "2.4.6",
+  "requiresBuild": false,
+  "files": {
+    "biome": {
+      "checkedAt": 1774289984724,
+      "integrity": "sha512-AtZyKbsV1uHr3RVn1rHC+CV/5ezxJqEIDX3gqnP2srWSMHo0Dku+XvEq1QtA06LjtI7OK2Hr7NmNzW7mGQ8gOA==",
+      "mode": 493,
+      "size": 46189968
+    },
+    "package.json": {
+      "checkedAt": 1774289984729,
+      "integrity": "sha512-1A1bdDByEKRNXU19be2P55QPF0rVKSVJJWitJw+8EQjRjUkTntI1p/kDlCbj7Hk4E9c4qfdLLp+ux/ooDhgqNg==",
+      "mode": 420,
+      "size": 401
+    },
+    "CHANGELOG.md": {
+      "checkedAt": 1774289984729,
+      "integrity": "sha512-W4Ex952ddRhvxeZDoyAso6I5kPyNmzF26uxDYGMP0RiuMqNkz+uOwEzua9uAKDXABPEh55jxiMV4jbWk4y8LuA==",
+      "mode": 420,
+      "size": 473
+    }
+  }
+}

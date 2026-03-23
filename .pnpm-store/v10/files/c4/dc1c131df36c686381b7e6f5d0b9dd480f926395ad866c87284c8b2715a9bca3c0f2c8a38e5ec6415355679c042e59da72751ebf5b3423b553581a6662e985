@@ -1,0 +1,35 @@
+import "node:module";
+import { checkPkgInstalled } from "./7552.js";
+import { installGlobal, addDefaultErrorHandler } from "./0~utils.js";
+const environment = {
+    name: 'jsdom',
+    setup: async (global, options)=>{
+        checkPkgInstalled('jsdom');
+        const { CookieJar, JSDOM, ResourceLoader, VirtualConsole } = await import("jsdom");
+        const { html = '<!DOCTYPE html>', userAgent, url = 'http://localhost:3000', contentType = 'text/html', pretendToBeVisual = true, includeNodeLocations = false, runScripts = 'dangerously', resources, console = false, cookieJar = false, ...restOptions } = options;
+        const dom = new JSDOM(html, {
+            pretendToBeVisual,
+            resources: resources ?? (userAgent ? new ResourceLoader({
+                userAgent
+            }) : void 0),
+            runScripts,
+            url,
+            virtualConsole: console && global.console ? new VirtualConsole().sendTo(global.console) : void 0,
+            cookieJar: cookieJar ? new CookieJar() : void 0,
+            includeNodeLocations,
+            contentType,
+            userAgent,
+            ...restOptions
+        });
+        const cleanupGlobal = installGlobal(global, dom.window);
+        const cleanupHandler = addDefaultErrorHandler(global);
+        return {
+            teardown () {
+                cleanupHandler();
+                dom.window.close();
+                cleanupGlobal();
+            }
+        };
+    }
+};
+export { environment };

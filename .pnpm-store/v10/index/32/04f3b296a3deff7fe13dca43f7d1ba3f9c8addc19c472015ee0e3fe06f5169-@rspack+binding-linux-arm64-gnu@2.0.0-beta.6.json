@@ -1,0 +1,31 @@
+{
+  "name": "@rspack/binding-linux-arm64-gnu",
+  "version": "2.0.0-beta.6",
+  "requiresBuild": false,
+  "files": {
+    "package.json": {
+      "checkedAt": 1774289987037,
+      "integrity": "sha512-UHWcU/WzVhHTl1kKrknp9YOgfLRjZTbvGIBrVHrfkoBZBT0m1PNa9WFaw8M5Atvvj3raMjHfZX0H9wmnZXZlmw==",
+      "mode": 420,
+      "size": 592
+    },
+    "README.md": {
+      "checkedAt": 1774289987037,
+      "integrity": "sha512-jVkGx/PK0CDQKlNnzFkTkpnQZUSDN32S08MZ0BMI2fgQ2OthEoJuahQGJ50DXA5onbawXHQ1nSVDUiqahVuMnA==",
+      "mode": 420,
+      "size": 429
+    },
+    "rspack.linux-arm64-gnu.node": {
+      "checkedAt": 1774289987078,
+      "integrity": "sha512-guvHUyIc5DGD5brs8zK6xuNRHwiYDHqHBAA+Pekktk6NKay/u2l7vqz6RsIkTARToFsfHm3Mxo8XQpTa+dlEjQ==",
+      "mode": 420,
+      "size": 43628440
+    },
+    "LICENSE": {
+      "checkedAt": 1774289987087,
+      "integrity": "sha512-mdYV6M4LJJHix4EKlVlRAUB0hBuLLEWOP37MSIuDHtTcZ9d/aq/iHhyIIgu489qMSvEWrI+AH6dUEX84WMI2Yw==",
+      "mode": 420,
+      "size": 1098
+    }
+  }
+}

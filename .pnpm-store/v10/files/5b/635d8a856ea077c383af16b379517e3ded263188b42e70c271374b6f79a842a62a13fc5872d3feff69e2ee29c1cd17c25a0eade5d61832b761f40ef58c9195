@@ -1,0 +1,457 @@
+import "node:module";
+import node_path from "node:path";
+import node_fs from "node:fs";
+import { detect, resolveCommand } from "./3145.js";
+import { confirm as Rt, intro as dist_Wt, log as R, note as dist_Vt, outro as Gt, cancel as Nt, isCancel as Ct, spinner as be, select as Jt } from "./0~dist.js";
+import "./4411.js";
+import { determineAgent, color as logger_color } from "./6830.js";
+function getUniqueBaseName(dir, baseName, ext) {
+    const fullPath = node_path.join(dir, `${baseName}${ext}`);
+    if (!node_fs.existsSync(fullPath)) return baseName;
+    let suffix = 1;
+    while(node_fs.existsSync(node_path.join(dir, `${baseName}_${suffix}${ext}`)))suffix++;
+    return `${baseName}_${suffix}`;
+}
+function ensureDir(dir) {
+    if (!node_fs.existsSync(dir)) node_fs.mkdirSync(dir, {
+        recursive: true
+    });
+}
+function writeFile(filePath, content) {
+    node_fs.writeFileSync(filePath, content, 'utf-8');
+}
+function readPackageJson(cwd) {
+    const pkgPath = node_path.join(cwd, 'package.json');
+    if (!node_fs.existsSync(pkgPath)) return null;
+    try {
+        const content = node_fs.readFileSync(pkgPath, 'utf-8');
+        return JSON.parse(content);
+    } catch  {
+        return null;
+    }
+}
+function updatePackageJsonScripts(cwd, scripts) {
+    const pkgPath = node_path.join(cwd, 'package.json');
+    let pkg;
+    if (node_fs.existsSync(pkgPath)) {
+        const content = node_fs.readFileSync(pkgPath, 'utf-8');
+        pkg = JSON.parse(content);
+    } else pkg = {};
+    const existingScripts = pkg.scripts ?? {};
+    pkg.scripts = {
+        ...existingScripts,
+        ...scripts
+    };
+    node_fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf-8');
+}
+function updatePackageJsonDevDeps(cwd, deps) {
+    const pkgPath = node_path.join(cwd, 'package.json');
+    let pkg;
+    if (node_fs.existsSync(pkgPath)) {
+        const content = node_fs.readFileSync(pkgPath, 'utf-8');
+        pkg = JSON.parse(content);
+    } else pkg = {};
+    const existingDevDeps = pkg.devDependencies ?? {};
+    for (const [name, version] of Object.entries(deps))if (!existingDevDeps[name]) existingDevDeps[name] = version;
+    pkg.devDependencies = existingDevDeps;
+    node_fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf-8');
+}
+async function detectPackageManagerAgent(cwd) {
+    const result = await detect({
+        cwd
+    });
+    return result?.agent ?? 'npm';
+}
+function detectTestDir(cwd) {
+    const candidates = [
+        'tests',
+        'test',
+        '__tests__',
+        'src/__tests__'
+    ];
+    for (const dir of candidates){
+        const fullPath = node_path.join(cwd, dir);
+        if (node_fs.existsSync(fullPath) && node_fs.statSync(fullPath).isDirectory()) return dir;
+    }
+    return 'tests';
+}
+function detectReact(pkg) {
+    const deps = pkg.dependencies ?? {};
+    const devDeps = pkg.devDependencies ?? {};
+    const reactVersion = deps.react ?? devDeps.react ?? null;
+    if (reactVersion) {
+        const cleanVersion = reactVersion.replace(/^[\^~>=<]+/, '');
+        return {
+            detected: true,
+            version: cleanVersion
+        };
+    }
+    return {
+        detected: false,
+        version: null
+    };
+}
+function detectTypeScript(cwd) {
+    return node_fs.existsSync(node_path.join(cwd, 'tsconfig.json'));
+}
+async function detectProject(cwd) {
+    const pkg = readPackageJson(cwd);
+    const { detected: hasReact, version: reactVersion } = pkg ? detectReact(pkg) : {
+        detected: false,
+        version: null
+    };
+    const hasTypeScript = detectTypeScript(cwd);
+    const testDir = detectTestDir(cwd);
+    const agent = await detectPackageManagerAgent(cwd);
+    return {
+        framework: hasReact ? 'react' : null,
+        language: hasTypeScript ? 'ts' : 'js',
+        testDir,
+        agent,
+        reactVersion
+    };
+}
+function getConfigTemplate() {
+    return `import { defineConfig } from '@rstest/core';
+
+export default defineConfig({
+  browser: {
+    enabled: true,
+    provider: 'playwright',
+  },
+});
+`;
+}
+function getReactComponentTemplate(lang) {
+    if ('ts' === lang) return `import { useState } from 'react';
+
+export default function Counter({ initial = 0 }: { initial?: number }) {
+  const [count, setCount] = useState(initial);
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button type="button" onClick={() => setCount((c) => c + 1)}>
+        Increment
+      </button>
+      <button type="button" onClick={() => setCount((c) => c - 1)}>
+        Decrement
+      </button>
+    </div>
+  );
+}
+`;
+    return `import { useState } from 'react';
+
+export default function Counter({ initial = 0 }) {
+  const [count, setCount] = useState(initial);
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button type="button" onClick={() => setCount((c) => c + 1)}>
+        Increment
+      </button>
+      <button type="button" onClick={() => setCount((c) => c - 1)}>
+        Decrement
+      </button>
+    </div>
+  );
+}
+`;
+}
+function getReactTestTemplate(lang) {
+    const componentExt = 'ts' === lang ? 'tsx' : 'jsx';
+    return `import { expect, test } from '@rstest/core';
+import { page } from '@rstest/browser';
+ import { render } from '@rstest/browser-react';
+ import Counter from './Counter.${componentExt}';
+ 
+ test('increments count on button click', async () => {
+  await render(<Counter initial={5} />);
+
+  await expect.element(page.getByText('Count: 5')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Increment' }).click();
+  await expect.element(page.getByText('Count: 6')).toBeVisible();
+ });
+ `;
+}
+function getVanillaComponentTemplate(lang) {
+    if ('ts' === lang) return `export function createCounter(initial = 0): HTMLElement {
+  let count = initial;
+
+  const container = document.createElement('div');
+  const display = document.createElement('p');
+  const incBtn = document.createElement('button');
+  const decBtn = document.createElement('button');
+
+  display.textContent = \`Count: \${count}\`;
+  incBtn.textContent = 'Increment';
+  decBtn.textContent = 'Decrement';
+
+  incBtn.addEventListener('click', () => {
+    count++;
+    display.textContent = \`Count: \${count}\`;
+  });
+
+  decBtn.addEventListener('click', () => {
+    count--;
+    display.textContent = \`Count: \${count}\`;
+  });
+
+  container.append(display, incBtn, decBtn);
+  return container;
+}
+`;
+    return `export function createCounter(initial = 0) {
+  let count = initial;
+
+  const container = document.createElement('div');
+  const display = document.createElement('p');
+  const incBtn = document.createElement('button');
+  const decBtn = document.createElement('button');
+
+  display.textContent = \`Count: \${count}\`;
+  incBtn.textContent = 'Increment';
+  decBtn.textContent = 'Decrement';
+
+  incBtn.addEventListener('click', () => {
+    count++;
+    display.textContent = \`Count: \${count}\`;
+  });
+
+  decBtn.addEventListener('click', () => {
+    count--;
+    display.textContent = \`Count: \${count}\`;
+  });
+
+  container.append(display, incBtn, decBtn);
+  return container;
+}
+`;
+}
+function getVanillaTestTemplate(lang) {
+    const ext = 'ts' === lang ? 'ts' : 'js';
+    return `import { expect, test } from '@rstest/core';
+import { page } from '@rstest/browser';
+import { createCounter } from './Counter.${ext}';
+
+ test('increments count on button click', async () => {
+   document.body.appendChild(createCounter(5));
+ 
+   await expect.element(page.getByText('Count: 5')).toBeVisible();
+ 
+   await page.getByRole('button', { name: 'Increment' }).click();
+   await expect.element(page.getByText('Count: 6')).toBeVisible();
+ });
+ `;
+}
+function getDependenciesWithVersions(framework, provider, rstestVersion) {
+    const deps = {
+        '@rstest/browser': `^${rstestVersion}`,
+        '@testing-library/dom': '^10.0.0'
+    };
+    if ('playwright' === provider) deps.playwright = "^1.49.1";
+    if ('react' === framework) deps['@rstest/browser-react'] = `^${rstestVersion}`;
+    return deps;
+}
+function getInstallCommand(agent) {
+    const resolved = resolveCommand(agent, 'install', []);
+    if (!resolved) return 'npm install';
+    return [
+        resolved.command,
+        ...resolved.args
+    ].join(' ');
+}
+function getPlaywrightInstallCommand(agent, _provider) {
+    const resolved = resolveCommand(agent, 'execute', [
+        'playwright',
+        'install',
+        '--with-deps'
+    ]);
+    if (!resolved) return 'npx playwright install --with-deps';
+    return [
+        resolved.command,
+        ...resolved.args
+    ].join(' ');
+}
+function getRunCommand(agent) {
+    const resolved = resolveCommand(agent, 'run', [
+        'test:browser'
+    ]);
+    if (!resolved) return 'npm run test:browser';
+    return [
+        resolved.command,
+        ...resolved.args
+    ].join(' ');
+}
+function getConfigFileName() {
+    return 'rstest.browser.config.ts';
+}
+async function create(options = {}) {
+    const cwd = process.cwd();
+    const { yes: nonInteractive } = options;
+    const projectInfo = await detectProject(cwd);
+    const { isAgent } = determineAgent();
+    if (nonInteractive) await createNonInteractive(cwd, projectInfo);
+    else await createInteractive(cwd, projectInfo, isAgent);
+}
+function computeFilePreview(cwd, projectInfo) {
+    const { language, testDir, framework } = projectInfo;
+    const effectiveFramework = 'react' === framework ? 'react' : 'vanilla';
+    const configFile = getConfigFileName();
+    let componentExt;
+    let testExt;
+    if ('react' === effectiveFramework) {
+        componentExt = 'ts' === language ? '.tsx' : '.jsx';
+        testExt = 'ts' === language ? '.test.tsx' : '.test.jsx';
+    } else {
+        componentExt = 'ts' === language ? '.ts' : '.js';
+        testExt = 'ts' === language ? '.test.ts' : '.test.js';
+    }
+    const testDirPath = node_path.join(cwd, testDir);
+    const baseName = getUniqueBaseName(testDirPath, 'Counter', componentExt);
+    return {
+        configFile,
+        componentFile: `${testDir}/${baseName}${componentExt}`,
+        testFile: `${testDir}/${baseName}${testExt}`,
+        framework: effectiveFramework
+    };
+}
+async function createNonInteractive(cwd, projectInfo) {
+    const { agent, testDir, framework, reactVersion } = projectInfo;
+    const provider = 'playwright';
+    console.log();
+    console.log(logger_color.cyan('◆'), logger_color.bold('rstest init browser --yes'));
+    console.log();
+    console.log('  Detecting project...');
+    if ('react' === framework && reactVersion) console.log(logger_color.green('  ✓'), `Found React ${reactVersion}`);
+    else if ('react' === framework) console.log(logger_color.green('  ✓'), 'Found React');
+    else console.log(logger_color.yellow('  ⚠'), 'Framework not detected, generating vanilla DOM example');
+    console.log(logger_color.green('  ✓'), 'Using playwright as browser provider');
+    console.log(logger_color.green('  ✓'), `Test directory: ${testDir}/`);
+    console.log();
+    const createdFiles = await generateFiles(cwd, projectInfo, provider);
+    console.log('  Created files:');
+    for (const file of createdFiles)console.log(`    - ${file}`);
+    console.log('    - Updated package.json');
+    console.log();
+    console.log('  Next steps:');
+    console.log(`    ${getInstallCommand(agent)}`);
+    console.log(`    ${getPlaywrightInstallCommand(agent, provider)}`);
+    console.log(`    ${getRunCommand(agent)}`);
+    console.log();
+    console.log(logger_color.green('└'), 'Done!');
+}
+async function createInteractive(cwd, projectInfo, isAgent) {
+    const { agent, language, testDir, framework, reactVersion } = projectInfo;
+    const effectiveFramework = 'react' === framework ? 'react' : 'vanilla';
+    dist_Wt(logger_color.bgCyan(logger_color.black(' rstest init browser ')));
+    const detectionLines = [];
+    if ('react' === framework && reactVersion) detectionLines.push(`${logger_color.green('✓')} Found React ${reactVersion}`);
+    else if ('react' === framework) detectionLines.push(`${logger_color.green('✓')} Found React`);
+    else detectionLines.push(`${logger_color.yellow('⚠')} Framework not detected, will generate vanilla DOM example`);
+    detectionLines.push(`${logger_color.green('✓')} Found ${'ts' === language ? 'TypeScript' : 'JavaScript'}`);
+    detectionLines.push(`${logger_color.green('✓')} Test directory: ${testDir}/`);
+    dist_Vt(detectionLines.join('\n'), 'Detecting project...');
+    if (isAgent) R.info(`AI Agent detected. For non-interactive mode, run:\n  ${logger_color.cyan('npx rstest init browser --yes')}`);
+    const providerSelection = await Jt({
+        message: 'Choose a browser provider (so far, only Playwright)',
+        options: [
+            {
+                value: 'playwright',
+                label: 'Playwright',
+                hint: 'recommended'
+            }
+        ]
+    });
+    if (Ct(providerSelection)) {
+        Nt('Operation cancelled.');
+        process.exit(0);
+    }
+    const provider = providerSelection;
+    const preview = computeFilePreview(cwd, projectInfo);
+    const deps = getDependenciesWithVersions(effectiveFramework, provider, "0.9.4");
+    const depsList = Object.entries(deps).map(([name, version])=>`${name}@${version}`).join(', ');
+    const previewLines = [
+        `${logger_color.cyan('+')} Create ${preview.configFile}`,
+        `${logger_color.cyan('+')} Create ${preview.componentFile}`,
+        `${logger_color.cyan('+')} Create ${preview.testFile}`,
+        `${logger_color.yellow('~')} Modify package.json`,
+        '   - Add "test:browser" script',
+        `   - Add devDependencies: ${logger_color.dim(depsList)}`
+    ];
+    dist_Vt(previewLines.join('\n'), 'Changes to be made');
+    const confirmed = await Rt({
+        message: 'Proceed with these changes?',
+        initialValue: true
+    });
+    if (Ct(confirmed) || !confirmed) {
+        Nt('Operation cancelled.');
+        process.exit(0);
+    }
+    const s = be();
+    s.start('Creating files...');
+    const createdFiles = await generateFiles(cwd, projectInfo, provider);
+    s.stop('Created files');
+    const fileLines = createdFiles.map((f)=>`${logger_color.green('✓')} Created ${f}`);
+    fileLines.push(`${logger_color.green('✓')} Updated package.json`);
+    dist_Vt(fileLines.join('\n'), 'Files');
+    const nextStepsLines = [
+        `${logger_color.bold('1.')} Install dependencies:`,
+        `   ${logger_color.cyan(getInstallCommand(agent))}`,
+        '',
+        `${logger_color.bold('2.')} Install Playwright browsers:`,
+        `   ${logger_color.cyan(getPlaywrightInstallCommand(agent, provider))}`,
+        '',
+        `${logger_color.bold('3.')} Run your tests:`,
+        `   ${logger_color.cyan(getRunCommand(agent))}`
+    ];
+    dist_Vt(nextStepsLines.join('\n'), 'Next steps');
+    Gt(logger_color.green('Done! Happy testing with Rstest!'));
+}
+async function generateFiles(cwd, projectInfo, provider) {
+    const { language, testDir, framework } = projectInfo;
+    const effectiveFramework = 'react' === framework ? 'react' : 'vanilla';
+    const createdFiles = [];
+    const configFileName = getConfigFileName();
+    const configPath = node_path.join(cwd, configFileName);
+    writeFile(configPath, getConfigTemplate());
+    createdFiles.push(configFileName);
+    const testDirPath = node_path.join(cwd, testDir);
+    ensureDir(testDirPath);
+    let componentExt;
+    let testExt;
+    if ('react' === effectiveFramework) {
+        componentExt = 'ts' === language ? '.tsx' : '.jsx';
+        testExt = 'ts' === language ? '.test.tsx' : '.test.jsx';
+    } else {
+        componentExt = 'ts' === language ? '.ts' : '.js';
+        testExt = 'ts' === language ? '.test.ts' : '.test.js';
+    }
+    const baseName = getUniqueBaseName(testDirPath, 'Counter', componentExt);
+    const componentFileName = `${baseName}${componentExt}`;
+    const componentPath = node_path.join(testDirPath, componentFileName);
+    'react' === effectiveFramework ? writeFile(componentPath, getReactComponentTemplate(language)) : writeFile(componentPath, getVanillaComponentTemplate(language));
+    createdFiles.push(`${testDir}/${componentFileName}`);
+    const testFileName = `${baseName}${testExt}`;
+    const testPath = node_path.join(testDirPath, testFileName);
+    let testContent;
+    if ('react' === effectiveFramework) {
+        testContent = getReactTestTemplate(language);
+        if ('Counter' !== baseName) testContent = testContent.replace(/from '\.\/Counter\.(tsx|jsx)'/, `from './${baseName}.$1'`);
+    } else {
+        testContent = getVanillaTestTemplate(language);
+        if ('Counter' !== baseName) testContent = testContent.replace(/from '\.\/Counter\.(ts|js)'/, `from './${baseName}.$1'`);
+    }
+    writeFile(testPath, testContent);
+    createdFiles.push(`${testDir}/${testFileName}`);
+    updatePackageJsonScripts(cwd, {
+        'test:browser': 'rstest --config=rstest.browser.config.ts'
+    });
+    const deps = getDependenciesWithVersions(effectiveFramework, provider, "0.9.4");
+    updatePackageJsonDevDeps(cwd, deps);
+    return createdFiles;
+}
+export { create };

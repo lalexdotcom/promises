@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { TimeoutError, pool, wait } from '../src/index';
+import { pool, TimeoutError, wait } from '../src/index';
 
 /* ────────────────────────────────────────────────────────────────────────
    TEST-01: PromisePool lifecycle

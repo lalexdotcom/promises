@@ -1,0 +1,15 @@
+import "node:module";
+import node_fs from "node:fs";
+const pluginCoverageCore = (coverageOptions)=>({
+        name: 'rstest:coverage-core',
+        setup: (api)=>{
+            api.onBeforeDevCompile(({ isFirstCompile })=>{
+                if (isFirstCompile && coverageOptions.clean) {
+                    if (node_fs.existsSync(coverageOptions.reportsDirectory)) node_fs.rmSync(coverageOptions.reportsDirectory, {
+                        recursive: true
+                    });
+                }
+            });
+        }
+    });
+export { pluginCoverageCore };

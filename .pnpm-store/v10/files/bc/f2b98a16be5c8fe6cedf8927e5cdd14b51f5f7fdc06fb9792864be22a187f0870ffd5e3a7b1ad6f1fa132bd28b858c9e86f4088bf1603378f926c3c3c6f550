@@ -1,0 +1,3805 @@
+import "node:module";
+import { __webpack_require__ } from "./rslib-runtime.js";
+import node_fs, { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { loadConfig, mergeRsbuildConfig } from "@rsbuild/core";
+import { stripVTControlCharacters } from "node:util";
+import promises from "node:fs/promises";
+import node_path, { dirname as external_node_path_dirname, resolve as external_node_path_resolve } from "node:path";
+import { createRequire } from "node:module";
+import node_process from "node:process";
+import { basename, isTTY, dirname as pathe_M_eThtNZ_dirname, resolve as pathe_M_eThtNZ_resolve, relative, getAbsolutePath, join, bgColor, formatRootStr, determineAgent, logger as logger_logger, castArray, dist_m, prettyTime, isDebug, color as logger_color, isAbsolute, getTaskNameWithPrefix, normalize, formatError } from "./6830.js";
+import { isDynamicPattern, glob, DEFAULT_CONFIG_NAME, prettyTestPath, globalApis, TEMP_RSTEST_OUTPUT_DIR_GLOB, formatTestPath, filterProjects, DEFAULT_CONFIG_EXTENSIONS, TS_CONFIG_FILE } from "./4411.js";
+import { posix } from "./7011.js";
+import { parse as stack_trace_parser_esm_parse } from "./1672.js";
+import { decode } from "./4397.js";
+import "./5040.js";
+var init_namespaceObject = {};
+__webpack_require__.r(init_namespaceObject);
+__webpack_require__.d(init_namespaceObject, {
+    initCli: ()=>init_initCli,
+    resolveProjects: ()=>resolveProjects
+});
+var core_namespaceObject = {};
+__webpack_require__.r(core_namespaceObject);
+__webpack_require__.d(core_namespaceObject, {
+    createRstest: ()=>core_createRstest,
+    initCli: ()=>init_initCli
+});
+var error_namespaceObject = {};
+__webpack_require__.r(error_namespaceObject);
+__webpack_require__.d(error_namespaceObject, {
+    C: ()=>formatStack,
+    parseErrorStacktrace: ()=>error_parseErrorStacktrace,
+    printError: ()=>error_printError
+});
+function toArr(any) {
+    return null == any ? [] : Array.isArray(any) ? any : [
+        any
+    ];
+}
+function toVal(out, key, val, opts) {
+    var x, old = out[key], nxt = ~opts.string.indexOf(key) ? null == val || true === val ? "" : String(val) : "boolean" == typeof val ? val : ~opts.boolean.indexOf(key) ? "false" === val ? false : "true" === val || (out._.push((x = +val, 0 * x === 0) ? x : val), !!val) : (x = +val, 0 * x === 0) ? x : val;
+    out[key] = null == old ? nxt : Array.isArray(old) ? old.concat(nxt) : [
+        old,
+        nxt
+    ];
+}
+function lib_default(args, opts) {
+    args = args || [];
+    opts = opts || {};
+    var k, arr, arg, name, val, out = {
+        _: []
+    };
+    var i = 0, j = 0, idx = 0, len = args.length;
+    const alibi = void 0 !== opts.alias;
+    const strict = void 0 !== opts.unknown;
+    const defaults = void 0 !== opts.default;
+    opts.alias = opts.alias || {};
+    opts.string = toArr(opts.string);
+    opts.boolean = toArr(opts.boolean);
+    if (alibi) for(k in opts.alias){
+        arr = opts.alias[k] = toArr(opts.alias[k]);
+        for(i = 0; i < arr.length; i++)(opts.alias[arr[i]] = arr.concat(k)).splice(i, 1);
+    }
+    for(i = opts.boolean.length; i-- > 0;){
+        arr = opts.alias[opts.boolean[i]] || [];
+        for(j = arr.length; j-- > 0;)opts.boolean.push(arr[j]);
+    }
+    for(i = opts.string.length; i-- > 0;){
+        arr = opts.alias[opts.string[i]] || [];
+        for(j = arr.length; j-- > 0;)opts.string.push(arr[j]);
+    }
+    if (defaults) for(k in opts.default){
+        name = typeof opts.default[k];
+        arr = opts.alias[k] = opts.alias[k] || [];
+        if (void 0 !== opts[name]) {
+            opts[name].push(k);
+            for(i = 0; i < arr.length; i++)opts[name].push(arr[i]);
+        }
+    }
+    const keys = strict ? Object.keys(opts.alias) : [];
+    for(i = 0; i < len; i++){
+        arg = args[i];
+        if ("--" === arg) {
+            out._ = out._.concat(args.slice(++i));
+            break;
+        }
+        for(j = 0; j < arg.length && 45 === arg.charCodeAt(j); j++);
+        if (0 === j) out._.push(arg);
+        else if ("no-" === arg.substring(j, j + 3)) {
+            name = arg.substring(j + 3);
+            if (strict && !~keys.indexOf(name)) return opts.unknown(arg);
+            out[name] = false;
+        } else {
+            for(idx = j + 1; idx < arg.length && 61 !== arg.charCodeAt(idx); idx++);
+            name = arg.substring(j, idx);
+            val = arg.substring(++idx) || i + 1 === len || 45 === ("" + args[i + 1]).charCodeAt(0) || args[++i];
+            arr = 2 === j ? [
+                name
+            ] : name;
+            for(idx = 0; idx < arr.length; idx++){
+                name = arr[idx];
+                if (strict && !~keys.indexOf(name)) return opts.unknown("-".repeat(j) + name);
+                toVal(out, name, idx + 1 < arr.length || val, opts);
+            }
+        }
+    }
+    if (defaults) {
+        for(k in opts.default)if (void 0 === out[k]) out[k] = opts.default[k];
+    }
+    if (alibi) for(k in out){
+        arr = opts.alias[k] || [];
+        while(arr.length > 0)out[arr.shift()] = out[k];
+    }
+    return out;
+}
+function removeBrackets(v) {
+    return v.replace(/[<[].+/, "").trim();
+}
+function findAllBrackets(v) {
+    const ANGLED_BRACKET_RE_GLOBAL = /<([^>]+)>/g;
+    const SQUARE_BRACKET_RE_GLOBAL = /\[([^\]]+)\]/g;
+    const res = [];
+    const parse = (match)=>{
+        let variadic = false;
+        let value = match[1];
+        if (value.startsWith("...")) {
+            value = value.slice(3);
+            variadic = true;
+        }
+        return {
+            required: match[0].startsWith("<"),
+            value,
+            variadic
+        };
+    };
+    let angledMatch;
+    while(angledMatch = ANGLED_BRACKET_RE_GLOBAL.exec(v))res.push(parse(angledMatch));
+    let squareMatch;
+    while(squareMatch = SQUARE_BRACKET_RE_GLOBAL.exec(v))res.push(parse(squareMatch));
+    return res;
+}
+function getMriOptions(options) {
+    const result = {
+        alias: {},
+        boolean: []
+    };
+    for (const [index, option] of options.entries()){
+        if (option.names.length > 1) result.alias[option.names[0]] = option.names.slice(1);
+        if (option.isBoolean) if (option.negated) {
+            if (!options.some((o, i)=>i !== index && o.names.some((name)=>option.names.includes(name)) && "boolean" == typeof o.required)) result.boolean.push(option.names[0]);
+        } else result.boolean.push(option.names[0]);
+    }
+    return result;
+}
+function findLongest(arr) {
+    return arr.sort((a, b)=>a.length > b.length ? -1 : 1)[0];
+}
+function padRight(str, length) {
+    return str.length >= length ? str : `${str}${" ".repeat(length - str.length)}`;
+}
+function camelcase(input) {
+    return input.replaceAll(/([a-z])-([a-z])/g, (_, p1, p2)=>p1 + p2.toUpperCase());
+}
+function setDotProp(obj, keys, val) {
+    let current = obj;
+    for(let i = 0; i < keys.length; i++){
+        const key = keys[i];
+        if (i === keys.length - 1) {
+            current[key] = val;
+            return;
+        }
+        if (null == current[key]) {
+            const nextKeyIsArrayIndex = +keys[i + 1] > -1;
+            current[key] = nextKeyIsArrayIndex ? [] : {};
+        }
+        current = current[key];
+    }
+}
+function setByType(obj, transforms) {
+    for (const key of Object.keys(transforms)){
+        const transform = transforms[key];
+        if (transform.shouldTransform) {
+            obj[key] = [
+                obj[key]
+            ].flat();
+            if ("function" == typeof transform.transformFunction) obj[key] = obj[key].map(transform.transformFunction);
+        }
+    }
+}
+function getFileName(input) {
+    const m = /([^\\/]+)$/.exec(input);
+    return m ? m[1] : "";
+}
+function camelcaseOptionName(name) {
+    return name.split(".").map((v, i)=>0 === i ? camelcase(v) : v).join(".");
+}
+var CACError = class extends Error {
+    constructor(message){
+        super(message);
+        this.name = "CACError";
+        if ("function" != typeof Error.captureStackTrace) this.stack = new Error(message).stack;
+    }
+};
+var Option = class {
+    rawName;
+    description;
+    name;
+    names;
+    isBoolean;
+    required;
+    config;
+    negated;
+    constructor(rawName, description, config){
+        this.rawName = rawName;
+        this.description = description;
+        this.config = Object.assign({}, config);
+        rawName = rawName.replaceAll(".*", "");
+        this.negated = false;
+        this.names = removeBrackets(rawName).split(",").map((v)=>{
+            let name = v.trim().replace(/^-{1,2}/, "");
+            if (name.startsWith("no-")) {
+                this.negated = true;
+                name = name.replace(/^no-/, "");
+            }
+            return camelcaseOptionName(name);
+        }).sort((a, b)=>a.length > b.length ? 1 : -1);
+        this.name = this.names.at(-1);
+        if (this.negated && null == this.config.default) this.config.default = true;
+        if (rawName.includes("<")) this.required = true;
+        else if (rawName.includes("[")) this.required = false;
+        else this.isBoolean = true;
+    }
+};
+let runtimeProcessArgs;
+let runtimeInfo;
+if ("u" > typeof process) {
+    let runtimeName;
+    runtimeName = "u" > typeof Deno && "string" == typeof Deno.version?.deno ? "deno" : "u" > typeof Bun && "string" == typeof Bun.version ? "bun" : "node";
+    runtimeInfo = `${process.platform}-${process.arch} ${runtimeName}-${process.version}`;
+    runtimeProcessArgs = process.argv;
+} else runtimeInfo = "u" < typeof navigator ? "unknown" : `${navigator.platform} ${navigator.userAgent}`;
+var Command = class {
+    rawName;
+    description;
+    config;
+    cli;
+    options;
+    aliasNames;
+    name;
+    args;
+    commandAction;
+    usageText;
+    versionNumber;
+    examples;
+    helpCallback;
+    globalCommand;
+    constructor(rawName, description, config = {}, cli){
+        this.rawName = rawName;
+        this.description = description;
+        this.config = config;
+        this.cli = cli;
+        this.options = [];
+        this.aliasNames = [];
+        this.name = removeBrackets(rawName);
+        this.args = findAllBrackets(rawName);
+        this.examples = [];
+    }
+    usage(text) {
+        this.usageText = text;
+        return this;
+    }
+    allowUnknownOptions() {
+        this.config.allowUnknownOptions = true;
+        return this;
+    }
+    ignoreOptionDefaultValue() {
+        this.config.ignoreOptionDefaultValue = true;
+        return this;
+    }
+    version(version, customFlags = "-v, --version") {
+        this.versionNumber = version;
+        this.option(customFlags, "Display version number");
+        return this;
+    }
+    example(example) {
+        this.examples.push(example);
+        return this;
+    }
+    option(rawName, description, config) {
+        const option = new Option(rawName, description, config);
+        this.options.push(option);
+        return this;
+    }
+    alias(name) {
+        this.aliasNames.push(name);
+        return this;
+    }
+    action(callback) {
+        this.commandAction = callback;
+        return this;
+    }
+    isMatched(name) {
+        return this.name === name || this.aliasNames.includes(name);
+    }
+    get isDefaultCommand() {
+        return "" === this.name || this.aliasNames.includes("!");
+    }
+    get isGlobalCommand() {
+        return this instanceof GlobalCommand;
+    }
+    hasOption(name) {
+        name = name.split(".")[0];
+        return this.options.find((option)=>option.names.includes(name));
+    }
+    outputHelp() {
+        const { name, commands } = this.cli;
+        const { versionNumber, options: globalOptions, helpCallback } = this.cli.globalCommand;
+        let sections = [
+            {
+                body: `${name}${versionNumber ? `/${versionNumber}` : ""}`
+            }
+        ];
+        sections.push({
+            title: "Usage",
+            body: `  $ ${name} ${this.usageText || this.rawName}`
+        });
+        if ((this.isGlobalCommand || this.isDefaultCommand) && commands.length > 0) {
+            const longestCommandName = findLongest(commands.map((command)=>command.rawName));
+            sections.push({
+                title: "Commands",
+                body: commands.map((command)=>`  ${padRight(command.rawName, longestCommandName.length)}  ${command.description}`).join("\n")
+            }, {
+                title: "For more info, run any command with the `--help` flag",
+                body: commands.map((command)=>`  $ ${name}${"" === command.name ? "" : ` ${command.name}`} --help`).join("\n")
+            });
+        }
+        let options = this.isGlobalCommand ? globalOptions : [
+            ...this.options,
+            ...globalOptions || []
+        ];
+        if (!this.isGlobalCommand && !this.isDefaultCommand) options = options.filter((option)=>"version" !== option.name);
+        if (options.length > 0) {
+            const longestOptionName = findLongest(options.map((option)=>option.rawName));
+            sections.push({
+                title: "Options",
+                body: options.map((option)=>`  ${padRight(option.rawName, longestOptionName.length)}  ${option.description} ${void 0 === option.config.default ? "" : `(default: ${option.config.default})`}`).join("\n")
+            });
+        }
+        if (this.examples.length > 0) sections.push({
+            title: "Examples",
+            body: this.examples.map((example)=>{
+                if ("function" == typeof example) return example(name);
+                return example;
+            }).join("\n")
+        });
+        if (helpCallback) sections = helpCallback(sections) || sections;
+        console.info(sections.map((section)=>section.title ? `${section.title}:\n${section.body}` : section.body).join("\n\n"));
+    }
+    outputVersion() {
+        const { name } = this.cli;
+        const { versionNumber } = this.cli.globalCommand;
+        if (versionNumber) console.info(`${name}/${versionNumber} ${runtimeInfo}`);
+    }
+    checkRequiredArgs() {
+        const minimalArgsCount = this.args.filter((arg)=>arg.required).length;
+        if (this.cli.args.length < minimalArgsCount) throw new CACError(`missing required args for command \`${this.rawName}\``);
+    }
+    checkUnknownOptions() {
+        const { options, globalCommand } = this.cli;
+        if (!this.config.allowUnknownOptions) {
+            for (const name of Object.keys(options))if ("--" !== name && !this.hasOption(name) && !globalCommand.hasOption(name)) throw new CACError(`Unknown option \`${name.length > 1 ? `--${name}` : `-${name}`}\``);
+        }
+    }
+    checkOptionValue() {
+        const { options: parsedOptions, globalCommand } = this.cli;
+        const options = [
+            ...globalCommand.options,
+            ...this.options
+        ];
+        for (const option of options){
+            const value = parsedOptions[option.name.split(".")[0]];
+            if (option.required) {
+                const hasNegated = options.some((o)=>o.negated && o.names.includes(option.name));
+                if (true === value || false === value && !hasNegated) throw new CACError(`option \`${option.rawName}\` value is missing`);
+            }
+        }
+    }
+    checkUnusedArgs() {
+        const maximumArgsCount = this.args.some((arg)=>arg.variadic) ? 1 / 0 : this.args.length;
+        if (maximumArgsCount < this.cli.args.length) throw new CACError(`Unused args: ${this.cli.args.slice(maximumArgsCount).map((arg)=>`\`${arg}\``).join(", ")}`);
+    }
+};
+var GlobalCommand = class extends Command {
+    constructor(cli){
+        super("@@global@@", "", {}, cli);
+    }
+};
+var CAC = class extends EventTarget {
+    name;
+    commands;
+    globalCommand;
+    matchedCommand;
+    matchedCommandName;
+    rawArgs;
+    args;
+    options;
+    showHelpOnExit;
+    showVersionOnExit;
+    constructor(name = ""){
+        super();
+        this.name = name;
+        this.commands = [];
+        this.rawArgs = [];
+        this.args = [];
+        this.options = {};
+        this.globalCommand = new GlobalCommand(this);
+        this.globalCommand.usage("<command> [options]");
+    }
+    usage(text) {
+        this.globalCommand.usage(text);
+        return this;
+    }
+    command(rawName, description, config) {
+        const command = new Command(rawName, description || "", config, this);
+        command.globalCommand = this.globalCommand;
+        this.commands.push(command);
+        return command;
+    }
+    option(rawName, description, config) {
+        this.globalCommand.option(rawName, description, config);
+        return this;
+    }
+    help(callback) {
+        this.globalCommand.option("-h, --help", "Display this message");
+        this.globalCommand.helpCallback = callback;
+        this.showHelpOnExit = true;
+        return this;
+    }
+    version(version, customFlags = "-v, --version") {
+        this.globalCommand.version(version, customFlags);
+        this.showVersionOnExit = true;
+        return this;
+    }
+    example(example) {
+        this.globalCommand.example(example);
+        return this;
+    }
+    outputHelp() {
+        if (this.matchedCommand) this.matchedCommand.outputHelp();
+        else this.globalCommand.outputHelp();
+    }
+    outputVersion() {
+        this.globalCommand.outputVersion();
+    }
+    setParsedInfo({ args, options }, matchedCommand, matchedCommandName) {
+        this.args = args;
+        this.options = options;
+        if (matchedCommand) this.matchedCommand = matchedCommand;
+        if (matchedCommandName) this.matchedCommandName = matchedCommandName;
+        return this;
+    }
+    unsetMatchedCommand() {
+        this.matchedCommand = void 0;
+        this.matchedCommandName = void 0;
+    }
+    parse(argv, { run = true } = {}) {
+        if (!argv) {
+            if (!runtimeProcessArgs) throw new Error("No argv provided and runtime process argv is not available.");
+            argv = runtimeProcessArgs;
+        }
+        this.rawArgs = argv;
+        if (!this.name) this.name = argv[1] ? getFileName(argv[1]) : "cli";
+        let shouldParse = true;
+        for (const command of this.commands){
+            const parsed = this.mri(argv.slice(2), command);
+            const commandName = parsed.args[0];
+            if (command.isMatched(commandName)) {
+                shouldParse = false;
+                const parsedInfo = {
+                    ...parsed,
+                    args: parsed.args.slice(1)
+                };
+                this.setParsedInfo(parsedInfo, command, commandName);
+                this.dispatchEvent(new CustomEvent(`command:${commandName}`, {
+                    detail: command
+                }));
+            }
+        }
+        if (shouldParse) {
+            for (const command of this.commands)if (command.isDefaultCommand) {
+                shouldParse = false;
+                const parsed = this.mri(argv.slice(2), command);
+                this.setParsedInfo(parsed, command);
+                this.dispatchEvent(new CustomEvent("command:!", {
+                    detail: command
+                }));
+            }
+        }
+        if (shouldParse) {
+            const parsed = this.mri(argv.slice(2));
+            this.setParsedInfo(parsed);
+        }
+        if (this.options.help && this.showHelpOnExit) {
+            this.outputHelp();
+            run = false;
+            this.unsetMatchedCommand();
+        }
+        if (this.options.version && this.showVersionOnExit && null == this.matchedCommandName) {
+            this.outputVersion();
+            run = false;
+            this.unsetMatchedCommand();
+        }
+        const parsedArgv = {
+            args: this.args,
+            options: this.options
+        };
+        if (run) this.runMatchedCommand();
+        if (!this.matchedCommand && this.args[0]) this.dispatchEvent(new CustomEvent("command:*", {
+            detail: this.args[0]
+        }));
+        return parsedArgv;
+    }
+    mri(argv, command) {
+        const cliOptions = [
+            ...this.globalCommand.options,
+            ...command ? command.options : []
+        ];
+        const mriOptions = getMriOptions(cliOptions);
+        let argsAfterDoubleDashes = [];
+        const doubleDashesIndex = argv.indexOf("--");
+        if (-1 !== doubleDashesIndex) {
+            argsAfterDoubleDashes = argv.slice(doubleDashesIndex + 1);
+            argv = argv.slice(0, doubleDashesIndex);
+        }
+        let parsed = lib_default(argv, mriOptions);
+        parsed = Object.keys(parsed).reduce((res, name)=>({
+                ...res,
+                [camelcaseOptionName(name)]: parsed[name]
+            }), {
+            _: []
+        });
+        const args = parsed._;
+        const options = {
+            "--": argsAfterDoubleDashes
+        };
+        const ignoreDefault = command && command.config.ignoreOptionDefaultValue ? command.config.ignoreOptionDefaultValue : this.globalCommand.config.ignoreOptionDefaultValue;
+        const transforms = Object.create(null);
+        for (const cliOption of cliOptions){
+            if (!ignoreDefault && void 0 !== cliOption.config.default) for (const name of cliOption.names)options[name] = cliOption.config.default;
+            if (Array.isArray(cliOption.config.type) && void 0 === transforms[cliOption.name]) {
+                transforms[cliOption.name] = Object.create(null);
+                transforms[cliOption.name].shouldTransform = true;
+                transforms[cliOption.name].transformFunction = cliOption.config.type[0];
+            }
+        }
+        for (const key of Object.keys(parsed))if ("_" !== key) {
+            setDotProp(options, key.split("."), parsed[key]);
+            setByType(options, transforms);
+        }
+        return {
+            args,
+            options
+        };
+    }
+    runMatchedCommand() {
+        const { args, options, matchedCommand: command } = this;
+        if (!command || !command.commandAction) return;
+        command.checkUnknownOptions();
+        command.checkOptionValue();
+        command.checkRequiredArgs();
+        command.checkUnusedArgs();
+        const actionArgs = [];
+        command.args.forEach((arg, index)=>{
+            if (arg.variadic) actionArgs.push(args.slice(index));
+            else actionArgs.push(args[index]);
+        });
+        actionArgs.push(options);
+        return command.commandAction.apply(this, actionArgs);
+    }
+};
+const cac = (name = "")=>new CAC(name);
+function initNodeEnv() {
+    if (!process.env.NODE_ENV) process.env.NODE_ENV = 'test';
+}
+function prepareCli() {
+    initNodeEnv();
+    process.env.RSTEST = 'true';
+    const { npm_execpath } = process.env;
+    if (!npm_execpath || npm_execpath.includes('npx-cli.js') || npm_execpath.includes('.bun')) logger_logger.log();
+}
+function showRstest() {
+    logger_logger.greet("  Rstest v0.9.4");
+    logger_logger.log('');
+}
+const applyCommonOptions = (cli)=>{
+    cli.option('-c, --config <config>', 'Specify the configuration file, can be a relative or absolute path').option('--config-loader <loader>', 'Specify the loader to load the config file (auto | jiti | native)', {
+        default: 'auto'
+    }).option('-r, --root <root>', 'Specify the project root directory, can be an absolute path or a path relative to cwd').option('--globals', 'Provide global APIs').option('--isolate', 'Run tests in an isolated environment').option('--include <include>', 'Match test files').option('--exclude <exclude>', 'Exclude files from test').option('-u, --update', 'Update snapshot files').option('--coverage', 'Enable code coverage collection').option('--project <name>', 'Run only projects that match the name, can be a full name or wildcards pattern').option('--passWithNoTests', 'Allows the test suite to pass when no files are found').option('--printConsoleTrace', 'Print console traces when calling any console method').option('--disableConsoleIntercept', 'Disable console intercept').option('--logHeapUsage', 'Log heap usage after each test').option('--slowTestThreshold <value>', 'The number of milliseconds after which a test or suite is considered slow').option('--reporter <reporter>', 'Specify the reporter to use').option('-t, --testNamePattern <value>', 'Run only tests with a name that matches the regex').option('--testEnvironment <name>', 'The environment that will be used for testing').option('--testTimeout <value>', 'Timeout of a test in milliseconds').option('--hookTimeout <value>', 'Timeout of hook in milliseconds').option('--hideSkippedTests', 'Hide skipped tests from the output').option('--hideSkippedTestFiles', 'Hide skipped test files from the output').option('--retry <retry>', 'Number of times to retry a test if it fails').option('--bail [number]', 'Stop running tests after n failures. Set to 0 to run all tests regardless of failures').option('--shard <index/count>', 'Split tests into several shards. This is useful for running tests in parallel on multiple machines.').option('--maxConcurrency <value>', 'Maximum number of concurrent tests').option('--clearMocks', 'Automatically clear mock calls, instances, contexts and results before every test').option('--resetMocks', 'Automatically reset mock state before every test').option('--restoreMocks', 'Automatically restore mock state and implementation before every test').option('--browser', 'Run tests in browser mode').option('--browser.enabled', 'Run tests in browser mode').option('--browser.name <name>', 'Browser to use: chromium, firefox, webkit (default: chromium)').option('--browser.headless', 'Run browser in headless mode (default: true in CI)').option('--browser.port <port>', 'Port for the browser mode dev server').option('--browser.strictPort', 'Exit if the specified port is already in use').option('--unstubGlobals', 'Restores all global variables that were changed with `rstest.stubGlobal` before every test').option('--unstubEnvs', 'Restores all runtime env values that were changed with `rstest.stubEnv` before every test').option('--includeTaskLocation', 'Collect test and suite locations. This might increase the running time.');
+    cli.option('--pool <type>', 'Shorthand for --pool.type').option('--pool.type <type>', 'Specify the test pool type (e.g. forks)').option('--pool.maxWorkers <value>', 'Maximum number or percentage of workers (e.g. 4 or 50%)').option('--pool.minWorkers <value>', 'Minimum number or percentage of workers (e.g. 1 or 25%)').option('--pool.execArgv <arg>', 'Additional Node.js execArgv passed to worker processes (can be specified multiple times)');
+};
+const handleUnexpectedExit = (rstest, err)=>{
+    for (const reporter of rstest?.context.reporters || [])reporter.onExit?.();
+    logger_logger.error('Failed to run Rstest.');
+    logger_logger.error(formatError(err));
+    process.exit(1);
+};
+const resolveCliRuntime = async (options)=>{
+    const [{ initCli }, { createRstest }] = await Promise.all([
+        Promise.resolve(init_namespaceObject),
+        Promise.resolve(core_namespaceObject)
+    ]);
+    const { config, configFilePath, projects } = await initCli(options);
+    return {
+        config,
+        configFilePath,
+        projects,
+        createRstest
+    };
+};
+const runRest = async ({ options, filters, command })=>{
+    let rstest;
+    const unexpectedlyExitHandler = (err)=>{
+        handleUnexpectedExit(rstest, err);
+    };
+    try {
+        const { config, configFilePath, projects, createRstest } = await resolveCliRuntime(options);
+        rstest = createRstest({
+            config,
+            configFilePath,
+            projects
+        }, command, filters.map(normalize));
+        process.on('uncaughtException', unexpectedlyExitHandler);
+        process.on('unhandledRejection', unexpectedlyExitHandler);
+        if ('watch' === command) {
+            const { watchFilesForRestart, onBeforeRestart } = await import("./0~restart.js");
+            onBeforeRestart(()=>{
+                process.off('uncaughtException', unexpectedlyExitHandler);
+                process.off('unhandledRejection', unexpectedlyExitHandler);
+            });
+            watchFilesForRestart({
+                rstest,
+                options,
+                filters
+            });
+        }
+        await rstest.runTests();
+    } catch (err) {
+        handleUnexpectedExit(rstest, err);
+    }
+};
+function setupCommands() {
+    const cli = cac('rstest');
+    cli.help();
+    cli.version("0.9.4");
+    applyCommonOptions(cli);
+    cli.command('[...filters]', 'run tests').option('-w, --watch', 'Run tests in watch mode').action(async (filters, options)=>{
+        if (!determineAgent().isAgent) showRstest();
+        if (options.watch) await runRest({
+            options,
+            filters,
+            command: 'watch'
+        });
+        else await runRest({
+            options,
+            filters,
+            command: 'run'
+        });
+    });
+    cli.command('run [...filters]', 'run tests without watch mode').action(async (filters, options)=>{
+        if (!determineAgent().isAgent) showRstest();
+        await runRest({
+            options,
+            filters,
+            command: 'run'
+        });
+    });
+    cli.command('watch [...filters]', 'run tests in watch mode').action(async (filters, options)=>{
+        if (!determineAgent().isAgent) showRstest();
+        await runRest({
+            options,
+            filters,
+            command: 'watch'
+        });
+    });
+    cli.command('list [...filters]', 'lists all test files that Rstest will run').option('--filesOnly', 'only list the test files').option('--json [boolean/path]', 'print tests as JSON or write to a file').option('--includeSuites', 'include suites in output').option('--printLocation', 'print test case location').action(async (filters, options)=>{
+        try {
+            const { config, configFilePath, projects, createRstest } = await resolveCliRuntime(options);
+            if (options.printLocation) config.includeTaskLocation = true;
+            const rstest = createRstest({
+                config,
+                configFilePath,
+                projects
+            }, 'list', filters.map(normalize));
+            await rstest.listTests({
+                filesOnly: options.filesOnly,
+                json: options.json,
+                includeSuites: options.includeSuites,
+                printLocation: options.printLocation
+            });
+        } catch (err) {
+            logger_logger.error('Failed to run Rstest list.');
+            logger_logger.error(formatError(err));
+            process.exit(1);
+        }
+    });
+    cli.command('merge-reports [path]', 'Merge blob reports from multiple shards into a unified report').option('--cleanup', 'Remove blob reports directory after merging').action(async (path, options)=>{
+        if (!determineAgent().isAgent) showRstest();
+        try {
+            const { config, configFilePath, projects, createRstest } = await resolveCliRuntime(options);
+            const rstest = createRstest({
+                config,
+                configFilePath,
+                projects
+            }, 'merge-reports', []);
+            await rstest.mergeReports({
+                path,
+                cleanup: options.cleanup
+            });
+        } catch (err) {
+            logger_logger.error('Failed to merge reports.');
+            logger_logger.error(formatError(err));
+            process.exit(1);
+        }
+    });
+    cli.command('init [project]', 'Initialize rstest configuration').option('--yes', 'Use default options (non-interactive)').action(async (project, options)=>{
+        try {
+            let selectedProject = project;
+            if (!selectedProject) {
+                const { select, isCancel } = await import("./0~dist.js");
+                console.log();
+                const selected = await select({
+                    message: 'What would you like to initialize?',
+                    options: [
+                        {
+                            value: 'browser',
+                            label: 'browser',
+                            hint: 'Browser mode for component testing'
+                        }
+                    ]
+                });
+                if (isCancel(selected)) {
+                    console.log(logger_color.yellow('Operation cancelled.'));
+                    process.exit(0);
+                }
+                selectedProject = selected;
+            }
+            if ('browser' === selectedProject) {
+                const { create } = await import("./0~browser~1.js");
+                await create({
+                    yes: options.yes
+                });
+            } else {
+                logger_logger.error(`Unknown project type: "${selectedProject}". Available: browser`);
+                process.exit(1);
+            }
+        } catch (err) {
+            logger_logger.error('Failed to initialize rstest.');
+            logger_logger.error(formatError(err));
+            process.exit(1);
+        }
+    });
+    cli.parse();
+}
+const findConfig = (basePath)=>DEFAULT_CONFIG_EXTENSIONS.map((ext)=>basePath + ext).find(node_fs.existsSync);
+const resolveConfigPath = (root, customConfig)=>{
+    if (customConfig) {
+        const customConfigPath = isAbsolute(customConfig) ? customConfig : join(root, customConfig);
+        if (node_fs.existsSync(customConfigPath)) return customConfigPath;
+        throw `Cannot find config file: ${logger_color.dim(customConfigPath)}`;
+    }
+    const configFilePath = findConfig(join(root, DEFAULT_CONFIG_NAME));
+    if (configFilePath) return configFilePath;
+    return null;
+};
+async function config_loadConfig({ cwd = process.cwd(), path, envMode, configLoader }) {
+    const configFilePath = resolveConfigPath(cwd, path);
+    if (!configFilePath) {
+        logger_logger.debug('no rstest config file found');
+        return {
+            content: {},
+            filePath: configFilePath
+        };
+    }
+    const { content } = await loadConfig({
+        cwd: pathe_M_eThtNZ_dirname(configFilePath),
+        path: configFilePath,
+        envMode,
+        loader: configLoader
+    });
+    let config = content;
+    config = await resolveExtends(config);
+    return {
+        content: config,
+        filePath: configFilePath
+    };
+}
+const resolveExtendEntry = async (entry, userConfig)=>{
+    const resolved = 'function' == typeof entry ? await entry(userConfig) : entry;
+    if ('projects' in resolved) {
+        const { projects: _projects, ...rest } = resolved;
+        return rest;
+    }
+    return resolved;
+};
+const resolveExtends = async (config)=>{
+    if (!config.extends) return config;
+    const userConfig = Object.freeze({
+        ...config
+    });
+    const extendsEntries = castArray(config.extends);
+    const resolvedExtends = await Promise.all(extendsEntries.map((entry)=>resolveExtendEntry(entry, userConfig)));
+    return mergeRstestConfig(...resolvedExtends, config);
+};
+const mergeProjectConfig = (...configs)=>mergeRstestConfig(...configs);
+const mergeRstestConfig = (...configs)=>configs.reduce((result, config)=>{
+        const merged = mergeRsbuildConfig(result, {
+            ...config,
+            exclude: Array.isArray(config.exclude) ? {
+                patterns: config.exclude,
+                override: false
+            } : config.exclude
+        });
+        if (!Array.isArray(config.exclude) && config.exclude?.override) merged.exclude = {
+            patterns: config.exclude.patterns
+        };
+        if (config.browser) merged.browser = {
+            ...merged.browser || {},
+            ...config.browser
+        };
+        merged.include = config.include ?? merged.include;
+        merged.reporters = config.reporters ?? merged.reporters;
+        if (merged.coverage) merged.coverage.reporters = config.coverage?.reporters ?? merged.coverage?.reporters;
+        return merged;
+    }, {});
+const createDefaultConfig = ()=>({
+        root: process.cwd(),
+        name: 'rstest',
+        include: [
+            '**/*.{test,spec}.?(c|m)[jt]s?(x)'
+        ],
+        exclude: {
+            patterns: [
+                '**/node_modules/**',
+                '**/dist/**',
+                '**/.{idea,git,cache,output,temp}/**'
+            ],
+            override: false
+        },
+        setupFiles: [],
+        globalSetup: [],
+        includeSource: [],
+        pool: {
+            type: 'forks'
+        },
+        isolate: true,
+        globals: false,
+        passWithNoTests: false,
+        update: false,
+        testTimeout: 5000,
+        hookTimeout: 10000,
+        testEnvironment: {
+            name: 'node'
+        },
+        retry: 0,
+        reporters: 'true' === process.env.GITHUB_ACTIONS ? [
+            'default',
+            'github-actions'
+        ] : [
+            'default'
+        ],
+        clearMocks: false,
+        resetMocks: false,
+        restoreMocks: false,
+        slowTestThreshold: 300,
+        unstubGlobals: false,
+        unstubEnvs: false,
+        maxConcurrency: 5,
+        printConsoleTrace: false,
+        disableConsoleIntercept: false,
+        snapshotFormat: {},
+        env: {},
+        hideSkippedTests: false,
+        hideSkippedTestFiles: false,
+        logHeapUsage: false,
+        bail: 0,
+        includeTaskLocation: false,
+        browser: {
+            enabled: false,
+            provider: 'playwright',
+            browser: 'chromium',
+            headless: dist_m,
+            strictPort: false,
+            providerOptions: {}
+        },
+        coverage: {
+            exclude: [
+                '**/node_modules/**',
+                '**/test/**',
+                '**/__tests__/**',
+                '**/__mocks__/**',
+                '**/*.d.ts',
+                '**/*.{test,spec}.[jt]s',
+                '**/*.{test,spec}.[cm][jt]s',
+                '**/*.{test,spec}.[jt]sx',
+                '**/*.{test,spec}.[cm][jt]sx'
+            ],
+            enabled: false,
+            provider: 'istanbul',
+            reporters: [
+                'text',
+                'html',
+                'clover',
+                'json'
+            ],
+            reportsDirectory: './coverage',
+            clean: true,
+            reportOnFailure: false,
+            allowExternal: false
+        }
+    });
+const withDefaultConfig = (config)=>{
+    const merged = mergeRstestConfig(createDefaultConfig(), config);
+    merged.setupFiles = castArray(merged.setupFiles);
+    merged.globalSetup = castArray(merged.globalSetup);
+    merged.exclude.patterns.push(TEMP_RSTEST_OUTPUT_DIR_GLOB);
+    const reportsDirectory = formatRootStr(merged.coverage.reportsDirectory, merged.root);
+    merged.coverage.reportsDirectory = isAbsolute(reportsDirectory) ? reportsDirectory : pathe_M_eThtNZ_resolve(merged.root, reportsDirectory);
+    merged.pool = 'string' == typeof config.pool ? {
+        type: config.pool
+    } : merged.pool;
+    merged.testEnvironment = 'string' == typeof config.testEnvironment ? {
+        name: config.testEnvironment
+    } : merged.testEnvironment;
+    merged.browser = {
+        enabled: merged.browser?.enabled ?? false,
+        provider: merged.browser?.provider ?? 'playwright',
+        browser: merged.browser?.browser ?? 'chromium',
+        headless: merged.browser?.headless ?? dist_m,
+        port: merged.browser?.port,
+        strictPort: merged.browser?.strictPort ?? false,
+        viewport: merged.browser?.viewport,
+        providerOptions: merged.browser?.providerOptions ?? {}
+    };
+    return {
+        ...merged,
+        include: merged.include.map((p)=>formatRootStr(p, merged.root)),
+        exclude: {
+            ...merged.exclude,
+            patterns: merged.exclude.patterns.map((p)=>formatRootStr(p, merged.root))
+        },
+        setupFiles: merged.setupFiles.map((p)=>formatRootStr(p, merged.root)),
+        globalSetup: merged.globalSetup.map((p)=>formatRootStr(p, merged.root)),
+        includeSource: merged.includeSource.map((p)=>formatRootStr(p, merged.root))
+    };
+};
+function mergeWithCLIOptions(config, options) {
+    const keys = [
+        'root',
+        'globals',
+        'isolate',
+        'passWithNoTests',
+        'update',
+        'testNamePattern',
+        'testTimeout',
+        'hookTimeout',
+        'clearMocks',
+        'resetMocks',
+        'restoreMocks',
+        'unstubEnvs',
+        'unstubGlobals',
+        'retry',
+        'slowTestThreshold',
+        'maxConcurrency',
+        'printConsoleTrace',
+        'disableConsoleIntercept',
+        'testEnvironment',
+        'hideSkippedTests',
+        'hideSkippedTestFiles',
+        'logHeapUsage'
+    ];
+    for (const key of keys)if (void 0 !== options[key]) config[key] = options[key];
+    if (options.reporter) config.reporters = castArray(options.reporter);
+    if (options.shard) {
+        const [index, count] = options.shard.split('/').map(Number);
+        if (!index || !count || Number.isNaN(index) || Number.isNaN(count) || index < 1 || index > count) throw new Error(`Invalid shard option: ${options.shard}. It must be in the format of <index>/<count> and 1-based.`);
+        config.shard = {
+            index,
+            count
+        };
+    }
+    if (void 0 !== options.bail && ('number' == typeof options.bail || 'boolean' == typeof options.bail)) config.bail = Number(options.bail);
+    if (void 0 !== options.coverage) {
+        config.coverage ??= {};
+        if ('boolean' == typeof options.coverage) config.coverage.enabled = options.coverage;
+        else {
+            if (void 0 !== options.coverage.enabled) config.coverage.enabled = options.coverage.enabled;
+            if (void 0 !== options.coverage.allowExternal) config.coverage.allowExternal = options.coverage.allowExternal;
+        }
+    }
+    if (options.exclude) config.exclude = castArray(options.exclude);
+    if (options.include) config.include = castArray(options.include);
+    if (void 0 !== options.browser) {
+        config.browser ??= {
+            provider: 'playwright'
+        };
+        if ('boolean' == typeof options.browser) config.browser.enabled = options.browser;
+        else {
+            if (void 0 !== options.browser.enabled) config.browser.enabled = options.browser.enabled;
+            if (void 0 !== options.browser.name) config.browser.browser = options.browser.name;
+            if (void 0 !== options.browser.headless) config.browser.headless = options.browser.headless;
+            if (void 0 !== options.browser.port) config.browser.port = Number(options.browser.port);
+            if (void 0 !== options.browser.strictPort) config.browser.strictPort = options.browser.strictPort;
+        }
+    }
+    if (void 0 !== options.pool) {
+        const poolFromCli = options.pool;
+        if ('string' == typeof poolFromCli) {
+            if ('string' == typeof config.pool) config.pool = {
+                type: config.pool
+            };
+            config.pool ??= {};
+            if ('object' != typeof config.pool) config.pool = {};
+            const pool = config.pool;
+            pool.type = poolFromCli;
+        } else {
+            if ('string' == typeof config.pool) config.pool = {
+                type: config.pool
+            };
+            config.pool ??= {};
+            if ('object' != typeof config.pool) config.pool = {};
+            const pool = config.pool;
+            if (void 0 !== poolFromCli.type) pool.type = poolFromCli.type;
+            if (void 0 !== poolFromCli.maxWorkers) pool.maxWorkers = poolFromCli.maxWorkers;
+            if (void 0 !== poolFromCli.minWorkers) pool.minWorkers = poolFromCli.minWorkers;
+            if (void 0 !== poolFromCli.execArgv) pool.execArgv = castArray(poolFromCli.execArgv);
+        }
+    }
+    return config;
+}
+async function resolveConfig(options) {
+    const { content: config, filePath: configFilePath } = await config_loadConfig({
+        cwd: options.cwd,
+        path: options.config,
+        configLoader: options.configLoader
+    });
+    const mergedConfig = mergeWithCLIOptions(config, options);
+    if (!mergedConfig.root) mergedConfig.root = options.cwd;
+    return {
+        config: mergedConfig,
+        configFilePath: configFilePath ?? void 0
+    };
+}
+async function resolveProjects({ config, root, options }) {
+    if (!config.projects) return [];
+    const getDefaultProjectName = (dir)=>{
+        const pkgJsonPath = pathe_M_eThtNZ_resolve(dir, 'package.json');
+        const name = existsSync(pkgJsonPath) ? JSON.parse(readFileSync(pkgJsonPath, 'utf-8')).name : '';
+        if ('string' != typeof name || !name) return basename(dir);
+        return name;
+    };
+    const globProjects = async (patterns, root)=>{
+        const globOptions = {
+            absolute: true,
+            dot: true,
+            onlyFiles: false,
+            cwd: root,
+            expandDirectories: false,
+            ignore: [
+                '**/node_modules/**',
+                '**/.DS_Store'
+            ]
+        };
+        return glob(patterns, globOptions);
+    };
+    const resolvedProjectPaths = new Set();
+    const getProjects = async (rstestConfig, root)=>{
+        const projectPaths = [];
+        const projectPatterns = [];
+        const inlineProjectConfigPromises = [];
+        for (const p of rstestConfig.projects || []){
+            if ('object' == typeof p) {
+                const projectRoot = p.root ? formatRootStr(p.root, root) : root;
+                inlineProjectConfigPromises.push(resolveExtends({
+                    ...p
+                }).then((projectConfig)=>({
+                        config: mergeWithCLIOptions({
+                            root: projectRoot,
+                            ...projectConfig,
+                            name: p.name ? p.name : getDefaultProjectName(projectRoot)
+                        }, options),
+                        configFilePath: void 0
+                    }), (error)=>({
+                        error
+                    })));
+                continue;
+            }
+            const projectStr = formatRootStr(p, root);
+            if (isDynamicPattern(projectStr)) projectPatterns.push(projectStr);
+            else {
+                const absolutePath = getAbsolutePath(root, projectStr);
+                if (!existsSync(absolutePath)) throw `Can't resolve project "${p}", please make sure "${p}" is a existing file or a directory.`;
+                projectPaths.push(absolutePath);
+            }
+        }
+        const [inlineProjectConfigResults, globbedProjectPaths] = await Promise.all([
+            Promise.all(inlineProjectConfigPromises),
+            globProjects(projectPatterns, root)
+        ]);
+        const projectConfigs = inlineProjectConfigResults.map((result)=>{
+            if ('error' in result) throw result.error;
+            return result;
+        });
+        projectPaths.push(...globbedProjectPaths);
+        const projects = [];
+        await Promise.all(projectPaths.map(async (project)=>{
+            const isDirectory = statSync(project).isDirectory();
+            const projectRoot = isDirectory ? project : pathe_M_eThtNZ_dirname(project);
+            const { config, configFilePath } = await resolveConfig({
+                ...options,
+                config: isDirectory ? void 0 : project,
+                cwd: projectRoot
+            });
+            if (configFilePath) {
+                if (resolvedProjectPaths.has(configFilePath)) return;
+                resolvedProjectPaths.add(configFilePath);
+            }
+            config.name ??= getDefaultProjectName(projectRoot);
+            if (config.projects?.length) {
+                const childProjects = await getProjects(config, projectRoot);
+                projects.push(...childProjects);
+            } else projects.push({
+                config,
+                configFilePath
+            });
+        }));
+        return projects.concat(projectConfigs);
+    };
+    const projects = await getProjects(config, root).then((p)=>filterProjects(p, options));
+    if (!projects.length) {
+        let errorMsg = `No projects found, please make sure you have at least one valid project.
+${logger_color.gray('projects:')} ${JSON.stringify(config.projects, null, 2)}`;
+        if (options.project) errorMsg += `\n${logger_color.gray('projectName filter:')} ${JSON.stringify(options.project, null, 2)}`;
+        throw errorMsg;
+    }
+    const names = new Set();
+    projects.forEach((project)=>{
+        if (names.has(project.config.name)) {
+            const conflictProjects = projects.filter((p)=>p.config.name === project.config.name);
+            throw `Project name "${project.config.name}" is already used. Please ensure all projects have unique names.
+Conflicting projects:
+${conflictProjects.map((p)=>`- ${p.configFilePath || p.config.root}`).join('\n')}
+        `;
+        }
+        names.add(project.config.name);
+    });
+    return projects;
+}
+async function init_initCli(options) {
+    const cwd = process.cwd();
+    const root = options.root ? getAbsolutePath(cwd, options.root) : cwd;
+    const { config, configFilePath } = await resolveConfig({
+        ...options,
+        cwd: options.root ? getAbsolutePath(cwd, options.root) : cwd
+    });
+    if (determineAgent().isAgent && !options.reporter && null == config.reporters) config.reporters = [
+        'md'
+    ];
+    const projects = await resolveProjects({
+        config,
+        root,
+        options
+    });
+    return {
+        config,
+        configFilePath,
+        projects
+    };
+}
+function runCLI() {
+    process.title = 'rstest-node';
+    prepareCli();
+    try {
+        setupCommands();
+    } catch (err) {
+        logger_logger.error('Failed to start Rstest CLI.');
+        logger_logger.error(err);
+        process.exit(1);
+    }
+}
+class SnapshotManager {
+    summary;
+    extension = ".snap";
+    constructor(options){
+        this.options = options;
+        this.clear();
+    }
+    clear() {
+        this.summary = emptySummary(this.options);
+    }
+    add(result) {
+        addSnapshotResult(this.summary, result);
+    }
+    resolvePath(testPath, context) {
+        const resolver = this.options.resolveSnapshotPath || (()=>join(join(pathe_M_eThtNZ_dirname(testPath), "__snapshots__"), `${basename(testPath)}${this.extension}`));
+        const path = resolver(testPath, this.extension, context);
+        return path;
+    }
+    resolveRawPath(testPath, rawPath) {
+        return isAbsolute(rawPath) ? rawPath : pathe_M_eThtNZ_resolve(pathe_M_eThtNZ_dirname(testPath), rawPath);
+    }
+}
+function emptySummary(options) {
+    const summary = {
+        added: 0,
+        failure: false,
+        filesAdded: 0,
+        filesRemoved: 0,
+        filesRemovedList: [],
+        filesUnmatched: 0,
+        filesUpdated: 0,
+        matched: 0,
+        total: 0,
+        unchecked: 0,
+        uncheckedKeysByFile: [],
+        unmatched: 0,
+        updated: 0,
+        didUpdate: "all" === options.updateSnapshot
+    };
+    return summary;
+}
+function addSnapshotResult(summary, result) {
+    if (result.added) summary.filesAdded++;
+    if (result.fileDeleted) summary.filesRemoved++;
+    if (result.unmatched) summary.filesUnmatched++;
+    if (result.updated) summary.filesUpdated++;
+    summary.added += result.added;
+    summary.matched += result.matched;
+    summary.unchecked += result.unchecked;
+    if (result.uncheckedKeys && result.uncheckedKeys.length > 0) summary.uncheckedKeysByFile.push({
+        filePath: result.filepath,
+        keys: result.uncheckedKeys
+    });
+    summary.unmatched += result.unmatched;
+    summary.updated += result.updated;
+    summary.total += result.added + result.matched + result.unmatched + result.updated;
+}
+const getSummaryStatusString = (tasks, name = 'tests', showTotal = true)=>{
+    if (0 === tasks.length) return logger_color.dim(`no ${name}`);
+    const passed = tasks.filter((result)=>'pass' === result.status);
+    const failed = tasks.filter((result)=>'fail' === result.status);
+    const skipped = tasks.filter((result)=>'skip' === result.status);
+    const todo = tasks.filter((result)=>'todo' === result.status);
+    const status = [
+        failed.length ? logger_color.bold(logger_color.red(`${failed.length} failed`)) : null,
+        passed.length ? logger_color.bold(logger_color.green(`${passed.length} passed`)) : null,
+        skipped.length ? logger_color.yellow(`${skipped.length} skipped`) : null,
+        todo.length ? logger_color.gray(`${todo.length} todo`) : null
+    ].filter(Boolean);
+    return status.join(logger_color.dim(' | ')) + (showTotal && status.length > 1 ? logger_color.gray(` (${tasks.length})`) : '');
+};
+const printSnapshotSummaryLog = (snapshots, rootDir)=>{
+    const summary = [];
+    if (snapshots.added) summary.push(logger_color.bold(logger_color.green(`${snapshots.added} written`)));
+    if (snapshots.unmatched) summary.push(logger_color.bold(logger_color.red(`${snapshots.unmatched} failed`)));
+    if (snapshots.updated) summary.push(logger_color.bold(logger_color.green(`${snapshots.updated} updated `)));
+    if (snapshots.filesRemoved) if (snapshots.didUpdate) summary.push(logger_color.bold(logger_color.green(`${snapshots.filesRemoved} files removed `)));
+    else summary.push(logger_color.bold(logger_color.yellow(`${snapshots.filesRemoved} files obsolete `)));
+    if (snapshots.filesRemovedList?.length) {
+        const [head, ...tail] = snapshots.filesRemovedList;
+        summary.push(`${logger_color.gray("➜")} ${formatTestPath(rootDir, head)}`);
+        for (const key of tail)summary.push(`  ${formatTestPath(rootDir, key)}`);
+    }
+    if (snapshots.unchecked) {
+        if (snapshots.didUpdate) summary.push(logger_color.bold(logger_color.green(`${snapshots.unchecked} removed`)));
+        else summary.push(logger_color.bold(logger_color.yellow(`${snapshots.unchecked} obsolete`)));
+        for (const uncheckedFile of snapshots.uncheckedKeysByFile){
+            summary.push(`${logger_color.gray("➜")} ${formatTestPath(rootDir, uncheckedFile.filePath)}`);
+            for (const key of uncheckedFile.keys)summary.push(`  ${key}`);
+        }
+    }
+    for (const [index, snapshot] of summary.entries()){
+        const title = 0 === index ? 'Snapshots' : '';
+        logger_logger.log(`${logger_color.gray(title.padStart(12))} ${snapshot}`);
+    }
+};
+const TestFileSummaryLabel = logger_color.gray('Test Files'.padStart(11));
+const TestSummaryLabel = logger_color.gray('Tests'.padStart(11));
+const DurationLabel = logger_color.gray('Duration'.padStart(11));
+const printSummaryLog = ({ results, testResults, snapshotSummary, duration, rootPath })=>{
+    logger_logger.log('');
+    printSnapshotSummaryLog(snapshotSummary, rootPath);
+    logger_logger.log(`${TestFileSummaryLabel} ${getSummaryStatusString(results)}`);
+    logger_logger.log(`${TestSummaryLabel} ${getSummaryStatusString(testResults)}`);
+    logger_logger.log(`${DurationLabel} ${prettyTime(duration.totalTime)} ${logger_color.gray(`(build ${prettyTime(duration.buildTime)}, tests ${prettyTime(duration.testTime)})`)}`);
+    logger_logger.log('');
+};
+const printSummaryErrorLogs = async ({ testResults, results, rootPath, unhandledErrors, getSourcemap, filterRerunTestPaths })=>{
+    const failedTests = [
+        ...results.filter((i)=>'fail' === i.status && i.errors?.length && (filterRerunTestPaths ? filterRerunTestPaths.includes(i.testPath) : true)),
+        ...testResults.filter((i)=>'fail' === i.status && (filterRerunTestPaths ? filterRerunTestPaths.includes(i.testPath) : true))
+    ];
+    if (0 === failedTests.length && !unhandledErrors?.length) return;
+    logger_logger.stderr('');
+    logger_logger.stderr(logger_color.bold('Summary of all failing tests:'));
+    logger_logger.stderr('');
+    const { printError } = await Promise.resolve(error_namespaceObject);
+    for (const error of unhandledErrors || []){
+        logger_logger.stderr(bgColor('bgRed', ' Unhandled Error '));
+        await printError(error, getSourcemap, rootPath);
+    }
+    for (const test of failedTests){
+        const relativePath = posix.relative(rootPath, test.testPath);
+        const nameStr = getTaskNameWithPrefix(test);
+        logger_logger.stderr(`${bgColor('bgRed', ' FAIL ')} ${prettyTestPath(relativePath)} ${nameStr.length ? `${logger_color.dim(">")} ${nameStr}` : ''}`);
+        if (test.errors) {
+            const { printError } = await Promise.resolve(error_namespaceObject);
+            for (const error of test.errors)await printError(error, getSourcemap, rootPath);
+        }
+    }
+};
+const DEFAULT_RENDER_INTERVAL_MS = 1000;
+const ESC = '\x1B[';
+const CLEAR_LINE = `${ESC}K`;
+const MOVE_CURSOR_ONE_ROW_UP = `${ESC}1A`;
+const SYNC_START = `${ESC}?2026h`;
+const SYNC_END = `${ESC}?2026l`;
+class WindowRenderer {
+    options;
+    streams;
+    buffer = [];
+    renderInterval = void 0;
+    renderScheduled = false;
+    windowHeight = 0;
+    finished = false;
+    cleanups = [];
+    exitHandler = ()=>{
+        this.finish();
+    };
+    constructor(options){
+        this.options = {
+            interval: DEFAULT_RENDER_INTERVAL_MS,
+            ...options
+        };
+        this.streams = {
+            output: options.logger.outputStream.write.bind(options.logger.outputStream),
+            error: options.logger.errorStream.write.bind(options.logger.errorStream)
+        };
+        this.cleanups.push(this.interceptStream(process.stdout, 'output'), this.interceptStream(process.stderr, 'error'));
+        this.start();
+        process.once('exit', this.exitHandler);
+    }
+    start() {
+        this.finished = false;
+        this.renderInterval = setInterval(()=>this.schedule(), this.options.interval).unref();
+    }
+    stop() {
+        this.cleanups.splice(0).map((fn)=>fn());
+        clearInterval(this.renderInterval);
+    }
+    finish() {
+        this.finished = true;
+        this.flushBuffer();
+        clearInterval(this.renderInterval);
+        process.removeListener('exit', this.exitHandler);
+    }
+    schedule() {
+        if (!this.renderScheduled) {
+            this.renderScheduled = true;
+            this.flushBuffer();
+            setTimeout(()=>{
+                this.renderScheduled = false;
+            }, 100).unref();
+        }
+    }
+    flushBuffer() {
+        if (0 === this.buffer.length) return this.render();
+        let current;
+        for (const next of this.buffer.splice(0)){
+            if (!current) {
+                current = next;
+                continue;
+            }
+            if (current.type !== next.type) {
+                this.render(current.message, current.type);
+                current = next;
+                continue;
+            }
+            current.message += next.message;
+        }
+        if (current) this.render(current?.message, current?.type);
+    }
+    render(message, type = 'output') {
+        if (this.finished) {
+            this.clearWindow();
+            return this.write(message || '', type);
+        }
+        const windowContent = this.options.getWindow();
+        const rowCount = getRenderedRowCount(windowContent, this.options.logger.getColumns());
+        let padding = this.windowHeight - rowCount;
+        if (padding > 0 && message) padding -= getRenderedRowCount([
+            message
+        ], this.options.logger.getColumns());
+        this.write(SYNC_START);
+        this.clearWindow();
+        if (message) this.write(message, type);
+        if (padding > 0) this.write('\n'.repeat(padding));
+        this.write(windowContent.join('\n'));
+        this.write(SYNC_END);
+        this.windowHeight = rowCount + Math.max(0, padding);
+    }
+    clearWindow() {
+        if (0 === this.windowHeight) return;
+        this.write(CLEAR_LINE);
+        for(let i = 1; i < this.windowHeight; i++)this.write(`${MOVE_CURSOR_ONE_ROW_UP}${CLEAR_LINE}`);
+        this.windowHeight = 0;
+    }
+    interceptStream(stream, type) {
+        const original = stream.write.bind(stream);
+        stream.write = (chunk, _, callback)=>{
+            if (chunk) if (this.finished) this.write(chunk.toString(), type);
+            else this.buffer.push({
+                type,
+                message: chunk.toString()
+            });
+            callback?.();
+        };
+        return function restore() {
+            stream.write = original;
+        };
+    }
+    write(message, type = 'output') {
+        this.streams[type](message);
+    }
+}
+function getRenderedRowCount(rows, columns) {
+    let count = 0;
+    for (const row of rows){
+        const text = stripVTControlCharacters(row);
+        count += Math.max(1, Math.ceil(text.length / columns));
+    }
+    return count;
+}
+class StatusRenderer {
+    rootPath;
+    renderer;
+    startTime = void 0;
+    testState;
+    constructor(rootPath, state, logger){
+        this.rootPath = rootPath;
+        this.renderer = new WindowRenderer({
+            getWindow: ()=>this.getContent(),
+            logger: logger ?? {
+                outputStream: process.stdout,
+                errorStream: process.stderr,
+                getColumns: ()=>'columns' in process.stdout ? process.stdout.columns : 80
+            }
+        });
+        this.testState = state;
+    }
+    getContent() {
+        this.startTime ??= Date.now();
+        const now = Date.now();
+        const summary = [];
+        const runningModules = this.testState.getRunningModules();
+        const testModules = this.testState.getTestModules();
+        const shouldDisplayRunningTests = (runningTests)=>runningTests[0]?.startTime && now - runningTests[0].startTime > 2000;
+        for (const [module, { runningTests }] of runningModules.entries()){
+            const relativePath = relative(this.rootPath, module);
+            summary.push(`${bgColor('bgYellow', ' RUNS ')} ${prettyTestPath(relativePath)}`);
+            if (runningTests.length && shouldDisplayRunningTests(runningTests)) {
+                let caseLog = ` ${logger_color.gray("➜")} ${getTaskNameWithPrefix(runningTests[0])} ${logger_color.magenta(prettyTime(now - runningTests[0].startTime))}`;
+                if (runningTests.length > 1) caseLog += logger_color.gray(` and ${runningTests.length - 1} more cases`);
+                summary.push(caseLog);
+            }
+        }
+        summary.push('');
+        if (0 === testModules.length) summary.push(`${TestFileSummaryLabel} ${runningModules.size} total`);
+        else summary.push(`${TestFileSummaryLabel} ${getSummaryStatusString(testModules, '', false)} ${logger_color.dim('|')} ${runningModules.size + testModules.length} total`);
+        const testResults = Array.from(runningModules.values()).flatMap(({ results })=>results).concat(testModules.flatMap((mod)=>mod.results));
+        if (testResults.length) summary.push(`${TestSummaryLabel} ${getSummaryStatusString(testResults, '', false)}`);
+        summary.push(`${DurationLabel} ${prettyTime(Date.now() - this.startTime)}`);
+        summary.push('');
+        return summary;
+    }
+    onTestFileStart() {
+        this.renderer?.schedule();
+    }
+    onTestCaseResult() {
+        this.renderer?.schedule();
+    }
+    onTestFileResult() {
+        this.renderer?.schedule();
+    }
+    clear() {
+        this.startTime = void 0;
+        this.renderer?.finish();
+    }
+}
+const statusStr = {
+    fail: '✗',
+    pass: '✓',
+    todo: '-',
+    skip: '-'
+};
+const statusColor = {
+    fail: logger_color.red,
+    pass: logger_color.green,
+    todo: logger_color.gray,
+    skip: logger_color.gray
+};
+const statusColorfulStr = {
+    fail: statusColor.fail(statusStr.fail),
+    pass: statusColor.pass(statusStr.pass),
+    todo: statusColor.todo(statusStr.todo),
+    skip: statusColor.skip(statusStr.skip)
+};
+const logCase = (result, options)=>{
+    const isSlowCase = (result.duration || 0) > options.slowTestThreshold;
+    if (options.hideSkippedTests && 'skip' === result.status) return;
+    const icon = isSlowCase && 'pass' === result.status ? logger_color.yellow(statusStr[result.status]) : statusColorfulStr[result.status];
+    const nameStr = getTaskNameWithPrefix(result);
+    const duration = void 0 !== result.duration ? ` (${prettyTime(result.duration)})` : '';
+    const retry = result.retryCount ? logger_color.yellow(` (retry x${result.retryCount})`) : '';
+    const heap = result.heap ? ` ${logger_color.magenta(formatHeapUsed(result.heap))}` : '';
+    logger_logger.log(`  ${icon} ${nameStr}${logger_color.gray(duration)}${retry}${heap}`);
+    if (result.errors) for (const error of result.errors)logger_logger.log(logger_color.red(`    ${error.message}`));
+};
+const formatHeapUsed = (heap)=>`${Math.floor(heap / 1024 / 1024)} MB heap used`;
+const logFileTitle = (test, relativePath, alwaysShowTime = false, showProjectName = false)=>{
+    let title = ` ${logger_color.bold(statusColorfulStr[test.status])}`;
+    if (showProjectName && test.project) title += ` ${statusColor[test.status](`[${test.project}]`)}`;
+    title += ` ${prettyTestPath(relativePath)}`;
+    const formatDuration = (duration)=>logger_color.green(prettyTime(duration));
+    title += ` ${logger_color.gray(`(${test.results.length})`)}`;
+    if (alwaysShowTime) title += ` ${formatDuration(test.duration)}`;
+    if (test.heap) title += ` ${logger_color.magenta(formatHeapUsed(test.heap))}`;
+    logger_logger.log(title);
+};
+class DefaultReporter {
+    rootPath;
+    config;
+    projectConfigs;
+    options = {};
+    statusRenderer;
+    testState;
+    constructor({ rootPath, options, config, testState, projectConfigs }){
+        this.rootPath = rootPath;
+        this.config = config;
+        this.projectConfigs = projectConfigs ?? new Map();
+        this.options = options;
+        this.testState = testState;
+        if (isTTY() || options.logger) this.statusRenderer = new StatusRenderer(rootPath, testState, options.logger);
+    }
+    onTestFileStart() {
+        this.statusRenderer?.onTestFileStart();
+    }
+    onTestFileResult(test) {
+        this.statusRenderer?.onTestFileResult();
+        const projectConfig = this.projectConfigs.get(test.project);
+        const hideSkippedTestFiles = projectConfig?.hideSkippedTestFiles ?? this.config.hideSkippedTestFiles;
+        if (hideSkippedTestFiles && 'skip' === test.status) return;
+        const relativePath = relative(this.rootPath, test.testPath);
+        const slowTestThreshold = projectConfig?.slowTestThreshold ?? this.config.slowTestThreshold;
+        logFileTitle(test, relativePath, false, this.options.showProjectName);
+        const showAllCases = this.testState.getTestFiles()?.length === 1;
+        const hideSkippedTests = projectConfig?.hideSkippedTests ?? this.config.hideSkippedTests;
+        for (const result of test.results){
+            const isDisplayed = showAllCases || 'fail' === result.status || (result.duration ?? 0) > slowTestThreshold || (result.retryCount ?? 0) > 0;
+            isDisplayed && logCase(result, {
+                slowTestThreshold,
+                hideSkippedTests
+            });
+        }
+    }
+    onTestCaseResult() {
+        this.statusRenderer?.onTestCaseResult();
+    }
+    onUserConsoleLog(log) {
+        const shouldLog = this.config.onConsoleLog?.(log.content) ?? true;
+        if (!shouldLog) return;
+        const titles = [];
+        const testPath = relative(this.rootPath, log.testPath);
+        if (log.trace) {
+            const [frame] = stack_trace_parser_esm_parse(log.trace);
+            const filePath = relative(this.rootPath, frame.file || '');
+            if (filePath !== testPath) titles.push(testPath);
+            titles.push(`${filePath}:${frame.lineNumber}:${frame.column}`);
+        } else titles.push(testPath);
+        const logOutput = 'stdout' === log.type ? logger_logger.log : logger_logger.stderr;
+        logOutput('');
+        logOutput(`${log.name}${logger_color.gray(logger_color.dim(` | ${titles.join(logger_color.gray(logger_color.dim(' | ')))}`))}`);
+        logOutput(log.content);
+        logOutput('');
+    }
+    onExit() {
+        this.statusRenderer?.clear();
+    }
+    async onTestRunEnd({ results, testResults, duration, getSourcemap, snapshotSummary, filterRerunTestPaths, unhandledErrors }) {
+        this.statusRenderer?.clear();
+        if (false === this.options.summary) return;
+        await printSummaryErrorLogs({
+            testResults,
+            results,
+            unhandledErrors,
+            rootPath: this.rootPath,
+            getSourcemap,
+            filterRerunTestPaths
+        });
+        printSummaryLog({
+            results,
+            testResults,
+            duration,
+            rootPath: this.rootPath,
+            snapshotSummary
+        });
+    }
+}
+const DEFAULT_OUTPUT_DIR = '.rstest-reports';
+class BlobReporter {
+    config;
+    outputDir;
+    consoleLogs = [];
+    constructor({ rootPath, config, options }){
+        this.config = config;
+        this.outputDir = options?.outputDir ? join(rootPath, options.outputDir) : join(rootPath, DEFAULT_OUTPUT_DIR);
+    }
+    onUserConsoleLog(log) {
+        this.consoleLogs.push(log);
+    }
+    async onTestRunEnd({ results, testResults, duration, snapshotSummary, unhandledErrors }) {
+        const shard = this.config.shard;
+        const fileName = shard ? `blob-${shard.index}-${shard.count}.json` : 'blob.json';
+        const blobData = {
+            version: "0.9.4",
+            shard: shard ? {
+                index: shard.index,
+                count: shard.count
+            } : void 0,
+            results,
+            testResults,
+            duration,
+            snapshotSummary,
+            unhandledErrors: unhandledErrors?.map((e)=>({
+                    message: e.message,
+                    stack: e.stack,
+                    name: e.name
+                })),
+            consoleLogs: this.consoleLogs.length > 0 ? this.consoleLogs : void 0
+        };
+        mkdirSync(this.outputDir, {
+            recursive: true
+        });
+        writeFileSync(join(this.outputDir, fileName), JSON.stringify(blobData), 'utf-8');
+    }
+}
+class GithubActionsReporter {
+    onWritePath;
+    rootPath;
+    constructor({ options, rootPath }){
+        this.onWritePath = options.onWritePath;
+        this.rootPath = rootPath;
+    }
+    log(message) {
+        logger_logger.log(`${message}\n`);
+    }
+    async onTestRunEnd({ results, testResults, getSourcemap }) {
+        const failedTests = [
+            ...results.filter((i)=>'fail' === i.status && i.errors?.length),
+            ...testResults.filter((i)=>'fail' === i.status)
+        ];
+        if (0 === failedTests.length) return;
+        const { parseErrorStacktrace } = await Promise.resolve(error_namespaceObject);
+        const logs = [];
+        for (const test of failedTests){
+            const { testPath } = test;
+            const nameStr = getTaskNameWithPrefix(test);
+            const shortPath = relative(this.rootPath, testPath);
+            const title = `${shortPath} > ${nameStr}`;
+            for (const error of test.errors || []){
+                let file = testPath;
+                let line = 1;
+                let column = 1;
+                const message = `${error.message}${error.diff ? `\n${error.diff}` : ''}`;
+                const type = 'error';
+                if (error.stack) {
+                    const stackFrames = await parseErrorStacktrace({
+                        stack: error.stack,
+                        fullStack: error.fullStack,
+                        getSourcemap
+                    });
+                    if (stackFrames[0]) {
+                        file = stackFrames[0].file || test.testPath;
+                        line = stackFrames[0].lineNumber || 1;
+                        column = stackFrames[0].column || 1;
+                    }
+                }
+                logs.push(`::${type} file=${this.onWritePath?.(file) || file},line=${line},col=${column},title=${escapeData(title)}::${escapeData(message)}`);
+            }
+        }
+        this.log('::group::Error for GitHub Actions');
+        for (const log of logs)this.log(log);
+        this.log('::endgroup::');
+    }
+}
+function escapeData(s) {
+    return s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A').replace(/:/g, '%3A').replace(/,/g, '%2C');
+}
+function ansiRegex({ onlyFirst = false } = {}) {
+    const ST = '(?:\\u0007|\\u001B\\u005C|\\u009C)';
+    const osc = `(?:\\u001B\\][\\s\\S]*?${ST})`;
+    const csi = '[\\u001B\\u009B][[\\]()#;?]*(?:\\d{1,4}(?:[;:]\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]';
+    const pattern = `${osc}|${csi}`;
+    return new RegExp(pattern, onlyFirst ? void 0 : 'g');
+}
+const regex = ansiRegex();
+function stripAnsi(string) {
+    if ('string' != typeof string) throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
+    if (!string.includes('\u001B') && !string.includes('\u009B')) return string;
+    return string.replace(regex, '');
+}
+const schemeRegex = /^[\w+.-]+:\/\//;
+const urlRegex = /^([\w+.-]+:)\/\/([^@/#?]*@)?([^:/#?]*)(:\d+)?(\/[^#?]*)?(\?[^#]*)?(#.*)?/;
+const fileRegex = /^file:(?:\/\/((?![a-z]:)[^/#?]*)?)?(\/?[^#?]*)(\?[^#]*)?(#.*)?/i;
+function isAbsoluteUrl(input) {
+    return schemeRegex.test(input);
+}
+function isSchemeRelativeUrl(input) {
+    return input.startsWith('//');
+}
+function isAbsolutePath(input) {
+    return input.startsWith('/');
+}
+function isFileUrl(input) {
+    return input.startsWith('file:');
+}
+function isRelative(input) {
+    return /^[.?#]/.test(input);
+}
+function parseAbsoluteUrl(input) {
+    const match = urlRegex.exec(input);
+    return makeUrl(match[1], match[2] || '', match[3], match[4] || '', match[5] || '/', match[6] || '', match[7] || '');
+}
+function parseFileUrl(input) {
+    const match = fileRegex.exec(input);
+    const path = match[2];
+    return makeUrl('file:', '', match[1] || '', '', isAbsolutePath(path) ? path : '/' + path, match[3] || '', match[4] || '');
+}
+function makeUrl(scheme, user, host, port, path, query, hash) {
+    return {
+        scheme,
+        user,
+        host,
+        port,
+        path,
+        query,
+        hash,
+        type: 7
+    };
+}
+function parseUrl(input) {
+    if (isSchemeRelativeUrl(input)) {
+        const url = parseAbsoluteUrl('http:' + input);
+        url.scheme = '';
+        url.type = 6;
+        return url;
+    }
+    if (isAbsolutePath(input)) {
+        const url = parseAbsoluteUrl('http://foo.com' + input);
+        url.scheme = '';
+        url.host = '';
+        url.type = 5;
+        return url;
+    }
+    if (isFileUrl(input)) return parseFileUrl(input);
+    if (isAbsoluteUrl(input)) return parseAbsoluteUrl(input);
+    const url = parseAbsoluteUrl('http://foo.com/' + input);
+    url.scheme = '';
+    url.host = '';
+    url.type = input ? input.startsWith('?') ? 3 : input.startsWith('#') ? 2 : 4 : 1;
+    return url;
+}
+function stripPathFilename(path) {
+    if (path.endsWith('/..')) return path;
+    const index = path.lastIndexOf('/');
+    return path.slice(0, index + 1);
+}
+function mergePaths(url, base) {
+    normalizePath(base, base.type);
+    if ('/' === url.path) url.path = base.path;
+    else url.path = stripPathFilename(base.path) + url.path;
+}
+function normalizePath(url, type) {
+    const rel = type <= 4;
+    const pieces = url.path.split('/');
+    let pointer = 1;
+    let positive = 0;
+    let addTrailingSlash = false;
+    for(let i = 1; i < pieces.length; i++){
+        const piece = pieces[i];
+        if (!piece) {
+            addTrailingSlash = true;
+            continue;
+        }
+        addTrailingSlash = false;
+        if ('.' !== piece) {
+            if ('..' === piece) {
+                if (positive) {
+                    addTrailingSlash = true;
+                    positive--;
+                    pointer--;
+                } else if (rel) pieces[pointer++] = piece;
+                continue;
+            }
+            pieces[pointer++] = piece;
+            positive++;
+        }
+    }
+    let path = '';
+    for(let i = 1; i < pointer; i++)path += '/' + pieces[i];
+    if (!path || addTrailingSlash && !path.endsWith('/..')) path += '/';
+    url.path = path;
+}
+function resolve_uri_resolve(input, base) {
+    if (!input && !base) return '';
+    const url = parseUrl(input);
+    let inputType = url.type;
+    if (base && 7 !== inputType) {
+        const baseUrl = parseUrl(base);
+        const baseType = baseUrl.type;
+        switch(inputType){
+            case 1:
+                url.hash = baseUrl.hash;
+            case 2:
+                url.query = baseUrl.query;
+            case 3:
+            case 4:
+                mergePaths(url, baseUrl);
+            case 5:
+                url.user = baseUrl.user;
+                url.host = baseUrl.host;
+                url.port = baseUrl.port;
+            case 6:
+                url.scheme = baseUrl.scheme;
+        }
+        if (baseType > inputType) inputType = baseType;
+    }
+    normalizePath(url, inputType);
+    const queryHash = url.query + url.hash;
+    switch(inputType){
+        case 2:
+        case 3:
+            return queryHash;
+        case 4:
+            {
+                const path = url.path.slice(1);
+                if (!path) return queryHash || '.';
+                if (isRelative(base || input) && !isRelative(path)) return './' + path + queryHash;
+                return path + queryHash;
+            }
+        case 5:
+            return url.path + queryHash;
+        default:
+            return url.scheme + '//' + url.user + url.host + url.port + url.path + queryHash;
+    }
+}
+function stripFilename(path) {
+    if (!path) return "";
+    const index = path.lastIndexOf("/");
+    return path.slice(0, index + 1);
+}
+function trace_mapping_resolver(mapUrl, sourceRoot) {
+    const from = stripFilename(mapUrl);
+    const prefix = sourceRoot ? sourceRoot + "/" : "";
+    return (source)=>resolve_uri_resolve(prefix + (source || ""), from);
+}
+var COLUMN = 0;
+var SOURCES_INDEX = 1;
+var SOURCE_LINE = 2;
+var SOURCE_COLUMN = 3;
+var NAMES_INDEX = 4;
+function maybeSort(mappings, owned) {
+    const unsortedIndex = nextUnsortedSegmentLine(mappings, 0);
+    if (unsortedIndex === mappings.length) return mappings;
+    if (!owned) mappings = mappings.slice();
+    for(let i = unsortedIndex; i < mappings.length; i = nextUnsortedSegmentLine(mappings, i + 1))mappings[i] = sortSegments(mappings[i], owned);
+    return mappings;
+}
+function nextUnsortedSegmentLine(mappings, start) {
+    for(let i = start; i < mappings.length; i++)if (!isSorted(mappings[i])) return i;
+    return mappings.length;
+}
+function isSorted(line) {
+    for(let j = 1; j < line.length; j++)if (line[j][COLUMN] < line[j - 1][COLUMN]) return false;
+    return true;
+}
+function sortSegments(line, owned) {
+    if (!owned) line = line.slice();
+    return line.sort(sortComparator);
+}
+function sortComparator(a, b) {
+    return a[COLUMN] - b[COLUMN];
+}
+var found = false;
+function binarySearch(haystack, needle, low, high) {
+    while(low <= high){
+        const mid = low + (high - low >> 1);
+        const cmp = haystack[mid][COLUMN] - needle;
+        if (0 === cmp) {
+            found = true;
+            return mid;
+        }
+        if (cmp < 0) low = mid + 1;
+        else high = mid - 1;
+    }
+    found = false;
+    return low - 1;
+}
+function upperBound(haystack, needle, index) {
+    for(let i = index + 1; i < haystack.length && haystack[i][COLUMN] === needle; index = i++);
+    return index;
+}
+function lowerBound(haystack, needle, index) {
+    for(let i = index - 1; i >= 0 && haystack[i][COLUMN] === needle; index = i--);
+    return index;
+}
+function memoizedState() {
+    return {
+        lastKey: -1,
+        lastNeedle: -1,
+        lastIndex: -1
+    };
+}
+function memoizedBinarySearch(haystack, needle, state, key) {
+    const { lastKey, lastNeedle, lastIndex } = state;
+    let low = 0;
+    let high = haystack.length - 1;
+    if (key === lastKey) {
+        if (needle === lastNeedle) {
+            found = -1 !== lastIndex && haystack[lastIndex][COLUMN] === needle;
+            return lastIndex;
+        }
+        if (needle >= lastNeedle) low = -1 === lastIndex ? 0 : lastIndex;
+        else high = lastIndex;
+    }
+    state.lastKey = key;
+    state.lastNeedle = needle;
+    return state.lastIndex = binarySearch(haystack, needle, low, high);
+}
+function trace_mapping_parse(map) {
+    return "string" == typeof map ? JSON.parse(map) : map;
+}
+var LINE_GTR_ZERO = "`line` must be greater than 0 (lines start at line 1)";
+var COL_GTR_EQ_ZERO = "`column` must be greater than or equal to 0 (columns start at column 0)";
+var LEAST_UPPER_BOUND = -1;
+var GREATEST_LOWER_BOUND = 1;
+var TraceMap = class {
+    constructor(map, mapUrl){
+        const isString = "string" == typeof map;
+        if (!isString && map._decodedMemo) return map;
+        const parsed = trace_mapping_parse(map);
+        const { version, file, names, sourceRoot, sources, sourcesContent } = parsed;
+        this.version = version;
+        this.file = file;
+        this.names = names || [];
+        this.sourceRoot = sourceRoot;
+        this.sources = sources;
+        this.sourcesContent = sourcesContent;
+        this.ignoreList = parsed.ignoreList || parsed.x_google_ignoreList || void 0;
+        const resolve = trace_mapping_resolver(mapUrl, sourceRoot);
+        this.resolvedSources = sources.map(resolve);
+        const { mappings } = parsed;
+        if ("string" == typeof mappings) {
+            this._encoded = mappings;
+            this._decoded = void 0;
+        } else if (Array.isArray(mappings)) {
+            this._encoded = void 0;
+            this._decoded = maybeSort(mappings, isString);
+        } else if (parsed.sections) throw new Error("TraceMap passed sectioned source map, please use FlattenMap export instead");
+        else throw new Error(`invalid source map: ${JSON.stringify(parsed)}`);
+        this._decodedMemo = memoizedState();
+        this._bySources = void 0;
+        this._bySourceMemos = void 0;
+    }
+};
+function cast(map) {
+    return map;
+}
+function decodedMappings(map) {
+    var _a;
+    return (_a = cast(map))._decoded || (_a._decoded = decode(cast(map)._encoded));
+}
+function originalPositionFor(map, needle) {
+    let { line, column, bias } = needle;
+    line--;
+    if (line < 0) throw new Error(LINE_GTR_ZERO);
+    if (column < 0) throw new Error(COL_GTR_EQ_ZERO);
+    const decoded = decodedMappings(map);
+    if (line >= decoded.length) return OMapping(null, null, null, null);
+    const segments = decoded[line];
+    const index = traceSegmentInternal(segments, cast(map)._decodedMemo, line, column, bias || GREATEST_LOWER_BOUND);
+    if (-1 === index) return OMapping(null, null, null, null);
+    const segment = segments[index];
+    if (1 === segment.length) return OMapping(null, null, null, null);
+    const { names, resolvedSources } = map;
+    return OMapping(resolvedSources[segment[SOURCES_INDEX]], segment[SOURCE_LINE] + 1, segment[SOURCE_COLUMN], 5 === segment.length ? names[segment[NAMES_INDEX]] : null);
+}
+function OMapping(source, line, column, name) {
+    return {
+        source,
+        line,
+        column,
+        name
+    };
+}
+function traceSegmentInternal(segments, memo, line, column, bias) {
+    let index = memoizedBinarySearch(segments, column, memo, line);
+    if (found) index = (bias === LEAST_UPPER_BOUND ? upperBound : lowerBound)(segments, column, index);
+    else if (bias === LEAST_UPPER_BOUND) index++;
+    if (-1 === index || index === segments.length) return -1;
+    return index;
+}
+const isRelativePath = (p)=>/^\.\.?\//.test(p);
+const isHttpLikeFile = (file)=>/^https?:\/\//.test(file);
+const hintNotDefinedError = (message)=>{
+    const [, varName] = message.match(/(\w+) is not defined/) || [];
+    if (varName) {
+        if (globalApis.includes(varName)) return message.replace(`${varName} is not defined`, `${varName} is not defined. Did you forget to enable "globals" configuration?`);
+        if ([
+            'jest',
+            'vitest'
+        ].includes(varName)) return message.replace(`${varName} is not defined`, `${varName} is not defined. Did you mean rstest?`);
+        if ('React' === varName) return message.replace(`${varName} is not defined`, `${varName} is not defined. Did you forget to install "${logger_color.yellow('@rsbuild/plugin-react')}" plugin?`);
+    }
+    return message;
+};
+async function error_printError(error, getSourcemap, rootPath) {
+    const errorName = error.name || 'Unknown Error';
+    if (error.message.includes('Vitest failed to access its internal state')) {
+        const tips = [
+            'Error: not support import `vitest` in Rstest test environment.\n',
+            'Solution:',
+            `  - Update your code to use imports from "${logger_color.yellow('@rstest/core')}" instead of "${logger_color.yellow('vitest')}".`,
+            '  - Enable `globals` configuration and use global API.'
+        ];
+        logger_logger.stderr(`${logger_color.red(tips.join('\n'))}\n`);
+        return;
+    }
+    if (error.message.includes('is not defined')) error.message = hintNotDefinedError(error.message);
+    logger_logger.stderr(`${logger_color.red(logger_color.bold(errorName))}${logger_color.red(`: ${error.message}`)}\n`);
+    if (error.diff) {
+        logger_logger.stderr(error.diff);
+        logger_logger.stderr('');
+    }
+    if (error.stack) {
+        const stackFrames = await error_parseErrorStacktrace({
+            stack: error.stack,
+            fullStack: error.fullStack,
+            getSourcemap
+        });
+        if (!stackFrames.length && !(error.fullStack || isDebug()) && !error.stack.endsWith(error.message)) logger_logger.stderr(logger_color.gray("No error stack found, set 'DEBUG=rstest' to show fullStack."));
+        if (stackFrames[0]) await printCodeFrame(stackFrames[0]);
+        printStack(stackFrames, rootPath);
+    }
+}
+async function printCodeFrame(frame) {
+    const filePath = frame.file?.startsWith('file') ? new URL(frame.file) : frame.file;
+    if (!filePath) return;
+    const source = node_fs.existsSync(filePath) ? node_fs.readFileSync(filePath, 'utf-8') : void 0;
+    if (!source) return;
+    const { codeFrameColumns } = await import("./0~lib.js").then(__webpack_require__.bind(__webpack_require__, "../../node_modules/.pnpm/@babel+code-frame@7.29.0/node_modules/@babel/code-frame/lib/index.js"));
+    const result = codeFrameColumns(source, {
+        start: {
+            line: frame.lineNumber,
+            column: frame.column
+        }
+    }, {
+        highlightCode: true,
+        linesBelow: 2
+    });
+    logger_logger.stderr(result);
+    logger_logger.stderr('');
+}
+function formatStack(frame, rootPath) {
+    return '<unknown>' !== frame.methodName ? `at ${frame.methodName} (${formatTestPath(rootPath, frame.file)}:${frame.lineNumber}:${frame.column})` : `at ${formatTestPath(rootPath, frame.file)}:${frame.lineNumber}:${frame.column}`;
+}
+function printStack(stackFrames, rootPath) {
+    for (const frame of stackFrames)logger_logger.stderr(logger_color.gray(`        ${formatStack(frame, rootPath)}`));
+    stackFrames.length && logger_logger.stderr('');
+}
+const stackIgnores = [
+    /\/@rstest\/core/,
+    /rstest\/packages\/core\/dist/,
+    /node_modules\/tinypool/,
+    /node_modules\/chai/,
+    /node_modules\/@vitest\/expect/,
+    /node_modules\/@vitest\/snapshot/,
+    /node:\w+/,
+    /webpack\/runtime/,
+    /rstest runtime/,
+    /webpack\\runtime/,
+    '<anonymous>'
+];
+async function error_parseErrorStacktrace({ stack, getSourcemap, fullStack = isDebug() }) {
+    const stackFrames = await Promise.all(stack_trace_parser_esm_parse(stack).filter((frame)=>fullStack ? true : frame.file && !stackIgnores.some((entry)=>frame.file?.match(entry))).map(async (frame)=>{
+        const sourcemap = await getSourcemap?.(frame.file);
+        if (sourcemap) {
+            const traceMap = new TraceMap(sourcemap);
+            const { line, column, source, name } = originalPositionFor(traceMap, {
+                line: frame.lineNumber,
+                column: frame.column
+            });
+            if (!source) return null;
+            return {
+                ...frame,
+                file: isRelativePath(source) ? external_node_path_resolve(frame.file, '../', source) : (()=>{
+                    try {
+                        return new URL(source).pathname;
+                    } catch  {
+                        return source;
+                    }
+                })(),
+                lineNumber: line,
+                name,
+                column
+            };
+        }
+        return frame;
+    })).then((frames)=>frames.filter((frame)=>null !== frame));
+    if (fullStack) return stackFrames;
+    const filteredFrames = stackFrames.filter((frame)=>{
+        if (!frame.file) return false;
+        if (isHttpLikeFile(frame.file)) return false;
+        const normalizedFile = frame.file.replace(/\\/g, '/');
+        return !stackIgnores.some((entry)=>normalizedFile.match(entry));
+    });
+    return filteredFrames;
+}
+class JUnitReporter {
+    rootPath;
+    outputPath;
+    constructor({ rootPath, options: { outputPath } = {} }){
+        this.rootPath = rootPath;
+        this.outputPath = outputPath;
+    }
+    sanitizeXml(text) {
+        let result = '';
+        for (const ch of stripAnsi(text)){
+            const cp = ch.codePointAt(0);
+            const valid = 0x09 === cp || 0x0a === cp || 0x0d === cp || cp >= 0x20 && cp <= 0xd7ff || cp >= 0xe000 && cp <= 0xfffd || cp >= 0x10000 && cp <= 0x10ffff;
+            if (valid) result += ch;
+        }
+        return result;
+    }
+    escapeXml(text) {
+        const sanitized = this.sanitizeXml(text);
+        return sanitized.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    }
+    async createJUnitTestCase(test, getSourcemap) {
+        const testCase = {
+            name: getTaskNameWithPrefix(test),
+            classname: relative(this.rootPath, test.testPath),
+            time: (test.duration || 0) / 1000,
+            status: test.status
+        };
+        if (test.errors && test.errors.length > 0) testCase.errors = await Promise.all(test.errors.map(async (error)=>{
+            let details = `${error.message}${error.diff ? `\n${error.diff}` : ''}`;
+            const stackFrames = error.stack ? await error_parseErrorStacktrace({
+                stack: error.stack,
+                fullStack: error.fullStack,
+                getSourcemap
+            }) : [];
+            if (stackFrames[0]) details += `\n${formatStack(stackFrames[0], this.rootPath)}`;
+            return {
+                message: this.escapeXml(error.message),
+                type: error.name || 'Error',
+                details: this.escapeXml(details)
+            };
+        }));
+        return testCase;
+    }
+    async createJUnitTestSuite(fileResult, getSourcemap) {
+        const testCases = await Promise.all(fileResult.results.map(async (test)=>this.createJUnitTestCase(test, getSourcemap)));
+        const failures = testCases.filter((test)=>'fail' === test.status).length;
+        const errors = 0;
+        const skipped = testCases.filter((test)=>'skip' === test.status || 'todo' === test.status).length;
+        const totalTime = testCases.reduce((sum, test)=>sum + test.time, 0);
+        return {
+            name: relative(this.rootPath, fileResult.testPath),
+            tests: testCases.length,
+            failures,
+            errors,
+            skipped,
+            time: totalTime,
+            timestamp: new Date().toISOString(),
+            testcases: testCases
+        };
+    }
+    generateJUnitXml(report) {
+        const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8"?>';
+        const testsuitesXml = `
+<testsuites name="${this.escapeXml(report.testsuites.name)}" tests="${report.testsuites.tests}" failures="${report.testsuites.failures}" errors="${report.testsuites.errors}" skipped="${report.testsuites.skipped}" time="${report.testsuites.time}" timestamp="${this.escapeXml(report.testsuites.timestamp)}">`;
+        const testsuiteXmls = report.testsuites.testsuite.map((suite)=>{
+            const testsuiteStart = `
+  <testsuite name="${this.escapeXml(suite.name)}" tests="${suite.tests}" failures="${suite.failures}" errors="${suite.errors}" skipped="${suite.skipped}" time="${suite.time}" timestamp="${this.escapeXml(suite.timestamp)}">`;
+            const testcaseXmls = suite.testcases.map((testcase)=>{
+                let testcaseXml = `
+    <testcase name="${this.escapeXml(testcase.name)}" classname="${this.escapeXml(testcase.classname)}" time="${testcase.time}">`;
+                if ('skip' === testcase.status || 'todo' === testcase.status) testcaseXml += `
+      <skipped/>`;
+                else if ('fail' === testcase.status && testcase.errors) testcase.errors.forEach((error)=>{
+                    testcaseXml += `
+      <failure message="${error.message}" type="${error.type}">${error.details || ''}</failure>`;
+                });
+                testcaseXml += `
+    </testcase>`;
+                return testcaseXml;
+            }).join('');
+            const testsuiteEnd = `
+  </testsuite>`;
+            return testsuiteStart + testcaseXmls + testsuiteEnd;
+        }).join('');
+        const testsuitesEnd = `
+</testsuites>`;
+        return xmlDeclaration + testsuitesXml + testsuiteXmls + testsuitesEnd;
+    }
+    async tryMkdir(dirname) {
+        try {
+            await promises.mkdir(dirname, {
+                recursive: true
+            });
+        } catch (error) {
+            if (error?.code !== 'EEXIST') throw error;
+        }
+    }
+    async onTestRunEnd({ results, testResults, duration, getSourcemap }) {
+        const testSuites = await Promise.all(results.map(async (fileResult)=>this.createJUnitTestSuite(fileResult, getSourcemap)));
+        const totalTests = testResults.length;
+        const totalFailures = testResults.filter((test)=>'fail' === test.status).length;
+        const totalErrors = 0;
+        const totalSkipped = testResults.filter((test)=>'skip' === test.status || 'todo' === test.status).length;
+        const totalTime = duration.testTime / 1000;
+        const report = {
+            testsuites: {
+                name: 'rstest tests',
+                tests: totalTests,
+                failures: totalFailures,
+                errors: totalErrors,
+                skipped: totalSkipped,
+                time: totalTime,
+                timestamp: new Date().toISOString(),
+                testsuite: testSuites
+            }
+        };
+        const xmlContent = this.generateJUnitXml(report);
+        if (this.outputPath) try {
+            const dirname = node_path.dirname(this.outputPath);
+            await this.tryMkdir(dirname);
+            await promises.writeFile(this.outputPath, xmlContent, 'utf-8');
+            logger_logger.log(`JUnit XML report written to: ${this.outputPath}`);
+        } catch (error) {
+            logger_logger.stderr(`Failed to write JUnit XML report to ${this.outputPath}:`, error);
+            logger_logger.log('JUnit XML Report:');
+            logger_logger.log(xmlContent);
+        }
+        else logger_logger.log(xmlContent);
+    }
+}
+function dashDashArg(agent, agentCommand) {
+    return (args)=>{
+        if (args.length > 1) return [
+            agent,
+            agentCommand,
+            args[0],
+            "--",
+            ...args.slice(1)
+        ];
+        return [
+            agent,
+            agentCommand,
+            args[0]
+        ];
+    };
+}
+function denoExecute() {
+    return (args)=>[
+            "deno",
+            "run",
+            `npm:${args[0]}`,
+            ...args.slice(1)
+        ];
+}
+const npm = {
+    agent: [
+        "npm",
+        0
+    ],
+    run: dashDashArg("npm", "run"),
+    install: [
+        "npm",
+        "i",
+        0
+    ],
+    frozen: [
+        "npm",
+        "ci",
+        0
+    ],
+    global: [
+        "npm",
+        "i",
+        "-g",
+        0
+    ],
+    add: [
+        "npm",
+        "i",
+        0
+    ],
+    upgrade: [
+        "npm",
+        "update",
+        0
+    ],
+    "upgrade-interactive": null,
+    dedupe: [
+        "npm",
+        "dedupe",
+        0
+    ],
+    execute: [
+        "npx",
+        0
+    ],
+    "execute-local": [
+        "npx",
+        0
+    ],
+    uninstall: [
+        "npm",
+        "uninstall",
+        0
+    ],
+    global_uninstall: [
+        "npm",
+        "uninstall",
+        "-g",
+        0
+    ]
+};
+const yarn = {
+    agent: [
+        "yarn",
+        0
+    ],
+    run: [
+        "yarn",
+        "run",
+        0
+    ],
+    install: [
+        "yarn",
+        "install",
+        0
+    ],
+    frozen: [
+        "yarn",
+        "install",
+        "--frozen-lockfile",
+        0
+    ],
+    global: [
+        "yarn",
+        "global",
+        "add",
+        0
+    ],
+    add: [
+        "yarn",
+        "add",
+        0
+    ],
+    upgrade: [
+        "yarn",
+        "upgrade",
+        0
+    ],
+    "upgrade-interactive": [
+        "yarn",
+        "upgrade-interactive",
+        0
+    ],
+    dedupe: null,
+    execute: [
+        "npx",
+        0
+    ],
+    "execute-local": dashDashArg("yarn", "exec"),
+    uninstall: [
+        "yarn",
+        "remove",
+        0
+    ],
+    global_uninstall: [
+        "yarn",
+        "global",
+        "remove",
+        0
+    ]
+};
+const yarnBerry = {
+    ...yarn,
+    frozen: [
+        "yarn",
+        "install",
+        "--immutable",
+        0
+    ],
+    upgrade: [
+        "yarn",
+        "up",
+        0
+    ],
+    "upgrade-interactive": [
+        "yarn",
+        "up",
+        "-i",
+        0
+    ],
+    dedupe: [
+        "yarn",
+        "dedupe",
+        0
+    ],
+    execute: [
+        "yarn",
+        "dlx",
+        0
+    ],
+    "execute-local": [
+        "yarn",
+        "exec",
+        0
+    ],
+    global: [
+        "npm",
+        "i",
+        "-g",
+        0
+    ],
+    global_uninstall: [
+        "npm",
+        "uninstall",
+        "-g",
+        0
+    ]
+};
+const pnpm = {
+    agent: [
+        "pnpm",
+        0
+    ],
+    run: [
+        "pnpm",
+        "run",
+        0
+    ],
+    install: [
+        "pnpm",
+        "i",
+        0
+    ],
+    frozen: [
+        "pnpm",
+        "i",
+        "--frozen-lockfile",
+        0
+    ],
+    global: [
+        "pnpm",
+        "add",
+        "-g",
+        0
+    ],
+    add: [
+        "pnpm",
+        "add",
+        0
+    ],
+    upgrade: [
+        "pnpm",
+        "update",
+        0
+    ],
+    "upgrade-interactive": [
+        "pnpm",
+        "update",
+        "-i",
+        0
+    ],
+    dedupe: [
+        "pnpm",
+        "dedupe",
+        0
+    ],
+    execute: [
+        "pnpm",
+        "dlx",
+        0
+    ],
+    "execute-local": [
+        "pnpm",
+        "exec",
+        0
+    ],
+    uninstall: [
+        "pnpm",
+        "remove",
+        0
+    ],
+    global_uninstall: [
+        "pnpm",
+        "remove",
+        "--global",
+        0
+    ]
+};
+const bun = {
+    agent: [
+        "bun",
+        0
+    ],
+    run: [
+        "bun",
+        "run",
+        0
+    ],
+    install: [
+        "bun",
+        "install",
+        0
+    ],
+    frozen: [
+        "bun",
+        "install",
+        "--frozen-lockfile",
+        0
+    ],
+    global: [
+        "bun",
+        "add",
+        "-g",
+        0
+    ],
+    add: [
+        "bun",
+        "add",
+        0
+    ],
+    upgrade: [
+        "bun",
+        "update",
+        0
+    ],
+    "upgrade-interactive": [
+        "bun",
+        "update",
+        "-i",
+        0
+    ],
+    dedupe: null,
+    execute: [
+        "bun",
+        "x",
+        0
+    ],
+    "execute-local": [
+        "bun",
+        "x",
+        0
+    ],
+    uninstall: [
+        "bun",
+        "remove",
+        0
+    ],
+    global_uninstall: [
+        "bun",
+        "remove",
+        "-g",
+        0
+    ]
+};
+const deno = {
+    agent: [
+        "deno",
+        0
+    ],
+    run: [
+        "deno",
+        "task",
+        0
+    ],
+    install: [
+        "deno",
+        "install",
+        0
+    ],
+    frozen: [
+        "deno",
+        "install",
+        "--frozen",
+        0
+    ],
+    global: [
+        "deno",
+        "install",
+        "-g",
+        0
+    ],
+    add: [
+        "deno",
+        "add",
+        0
+    ],
+    upgrade: [
+        "deno",
+        "outdated",
+        "--update",
+        0
+    ],
+    "upgrade-interactive": [
+        "deno",
+        "outdated",
+        "--update",
+        0
+    ],
+    dedupe: null,
+    execute: denoExecute(),
+    "execute-local": [
+        "deno",
+        "task",
+        "--eval",
+        0
+    ],
+    uninstall: [
+        "deno",
+        "remove",
+        0
+    ],
+    global_uninstall: [
+        "deno",
+        "uninstall",
+        "-g",
+        0
+    ]
+};
+const COMMANDS = {
+    npm: npm,
+    yarn: yarn,
+    "yarn@berry": yarnBerry,
+    pnpm: pnpm,
+    "pnpm@6": {
+        ...pnpm,
+        run: dashDashArg("pnpm", "run")
+    },
+    bun: bun,
+    deno: deno
+};
+function resolveCommand(agent, command, args) {
+    const value = COMMANDS[agent][command];
+    return constructCommand(value, args);
+}
+function constructCommand(value, args) {
+    if (null == value) return null;
+    const list = "function" == typeof value ? value(args) : value.flatMap((v)=>{
+        if ("number" == typeof v) return args;
+        return [
+            v
+        ];
+    });
+    return {
+        command: list[0],
+        args: list.slice(1)
+    };
+}
+const constants_AGENTS = [
+    "npm",
+    "yarn",
+    "yarn@berry",
+    "pnpm",
+    "pnpm@6",
+    "bun",
+    "deno"
+];
+const LOCKS = {
+    "bun.lock": "bun",
+    "bun.lockb": "bun",
+    "deno.lock": "deno",
+    "pnpm-lock.yaml": "pnpm",
+    "pnpm-workspace.yaml": "pnpm",
+    "yarn.lock": "yarn",
+    "package-lock.json": "npm",
+    "npm-shrinkwrap.json": "npm"
+};
+const INSTALL_METADATA = {
+    "node_modules/.deno/": "deno",
+    "node_modules/.pnpm/": "pnpm",
+    "node_modules/.yarn-state.yml": "yarn",
+    "node_modules/.yarn_integrity": "yarn",
+    "node_modules/.package-lock.json": "npm",
+    ".pnp.cjs": "yarn",
+    ".pnp.js": "yarn",
+    "bun.lock": "bun",
+    "bun.lockb": "bun"
+};
+async function pathExists(path2, type) {
+    try {
+        const stat = await promises.stat(path2);
+        return "file" === type ? stat.isFile() : stat.isDirectory();
+    } catch  {
+        return false;
+    }
+}
+function* lookup(cwd = node_process.cwd()) {
+    let directory = node_path.resolve(cwd);
+    const { root } = node_path.parse(directory);
+    while(directory && directory !== root){
+        yield directory;
+        directory = node_path.dirname(directory);
+    }
+}
+async function parsePackageJson(filepath, options) {
+    if (!filepath || !await pathExists(filepath, "file")) return null;
+    return await handlePackageManager(filepath, options);
+}
+async function detect(options = {}) {
+    const { cwd, strategies = [
+        "lockfile",
+        "packageManager-field",
+        "devEngines-field"
+    ] } = options;
+    let stopDir;
+    if ("string" == typeof options.stopDir) {
+        const resolved = node_path.resolve(options.stopDir);
+        stopDir = (dir)=>dir === resolved;
+    } else stopDir = options.stopDir;
+    for (const directory of lookup(cwd)){
+        for (const strategy of strategies)switch(strategy){
+            case "lockfile":
+                for (const lock of Object.keys(LOCKS))if (await pathExists(node_path.join(directory, lock), "file")) {
+                    const name = LOCKS[lock];
+                    const result = await parsePackageJson(node_path.join(directory, "package.json"), options);
+                    if (result) return result;
+                    return {
+                        name,
+                        agent: name
+                    };
+                }
+                break;
+            case "packageManager-field":
+            case "devEngines-field":
+                {
+                    const result = await parsePackageJson(node_path.join(directory, "package.json"), options);
+                    if (result) return result;
+                    break;
+                }
+            case "install-metadata":
+                for (const metadata of Object.keys(INSTALL_METADATA)){
+                    const fileOrDir = metadata.endsWith("/") ? "dir" : "file";
+                    if (await pathExists(node_path.join(directory, metadata), fileOrDir)) {
+                        const name = INSTALL_METADATA[metadata];
+                        const agent = "yarn" === name ? isMetadataYarnClassic(metadata) ? "yarn" : "yarn@berry" : name;
+                        return {
+                            name,
+                            agent
+                        };
+                    }
+                }
+                break;
+        }
+        if (stopDir?.(directory)) break;
+    }
+    return null;
+}
+function getNameAndVer(pkg) {
+    const handelVer = (version)=>version?.match(/\d+(\.\d+){0,2}/)?.[0] ?? version;
+    if ("string" == typeof pkg.packageManager) {
+        const [name, ver] = pkg.packageManager.replace(/^\^/, "").split("@");
+        return {
+            name,
+            ver: handelVer(ver)
+        };
+    }
+    if ("string" == typeof pkg.devEngines?.packageManager?.name) return {
+        name: pkg.devEngines.packageManager.name,
+        ver: handelVer(pkg.devEngines.packageManager.version)
+    };
+}
+async function handlePackageManager(filepath, options) {
+    try {
+        const content = await promises.readFile(filepath, "utf8");
+        const pkg = options.packageJsonParser ? await options.packageJsonParser(content, filepath) : JSON.parse(content);
+        let agent;
+        const nameAndVer = getNameAndVer(pkg);
+        if (nameAndVer) {
+            const name = nameAndVer.name;
+            const ver = nameAndVer.ver;
+            let version = ver;
+            if ("yarn" === name && ver && Number.parseInt(ver) > 1) {
+                agent = "yarn@berry";
+                version = "berry";
+                return {
+                    name,
+                    agent,
+                    version
+                };
+            }
+            if ("pnpm" === name && ver && Number.parseInt(ver) < 7) {
+                agent = "pnpm@6";
+                return {
+                    name,
+                    agent,
+                    version
+                };
+            }
+            if (!constants_AGENTS.includes(name)) return options.onUnknown?.(pkg.packageManager) ?? null;
+            agent = name;
+            return {
+                name,
+                agent,
+                version
+            };
+        }
+    } catch  {}
+    return null;
+}
+function isMetadataYarnClassic(metadataPath) {
+    return metadataPath.endsWith(".yarn_integrity");
+}
+const DEFAULT_TEST_LIST_MAX_ITEMS = 50;
+const FOCUSED_RUN_MAX_TESTS = 10;
+const md_require = createRequire(import.meta.url);
+const defaultOptions = {
+    preset: 'normal',
+    header: {
+        env: true
+    },
+    reproduction: 'file+name',
+    testLists: 'auto',
+    failures: {
+        max: 50
+    },
+    codeFrame: {
+        enabled: true,
+        linesAbove: 2,
+        linesBelow: 2
+    },
+    stack: 'top',
+    candidateFiles: {
+        enabled: true,
+        max: 5
+    },
+    console: {
+        enabled: true,
+        maxLogsPerTestPath: 10,
+        maxCharsPerEntry: 500
+    },
+    errors: {
+        unhandled: true
+    }
+};
+const presetOptions = {
+    normal: {},
+    compact: {
+        console: {
+            enabled: false,
+            maxLogsPerTestPath: defaultOptions.console.maxLogsPerTestPath,
+            maxCharsPerEntry: defaultOptions.console.maxCharsPerEntry
+        },
+        stack: 'top',
+        codeFrame: {
+            enabled: false,
+            linesAbove: defaultOptions.codeFrame.linesAbove,
+            linesBelow: defaultOptions.codeFrame.linesBelow
+        },
+        failures: {
+            max: 20
+        }
+    },
+    full: {
+        stack: 'full',
+        console: {
+            enabled: defaultOptions.console.enabled,
+            maxLogsPerTestPath: 200,
+            maxCharsPerEntry: 5000
+        },
+        failures: {
+            max: 200
+        },
+        codeFrame: {
+            enabled: defaultOptions.codeFrame.enabled,
+            linesAbove: 3,
+            linesBelow: 3
+        }
+    }
+};
+const resolveToggleOption = (input, defaults, disabled, preset)=>{
+    if (false === input) return {
+        ...disabled
+    };
+    const base = preset ? {
+        ...defaults,
+        ...preset
+    } : defaults;
+    if (true === input || void 0 === input) return {
+        ...base
+    };
+    return {
+        ...base,
+        ...input
+    };
+};
+const resolveHeader = (input)=>resolveToggleOption(input, defaultOptions.header, {
+        env: false
+    });
+const resolveReproduction = (input)=>{
+    if (false === input) return false;
+    if (true === input || void 0 === input) return defaultOptions.reproduction;
+    return input;
+};
+const resolveFailures = (input, preset)=>({
+        max: input?.max ?? preset?.failures?.max ?? defaultOptions.failures.max
+    });
+const resolveCodeFrame = (input, preset)=>resolveToggleOption(input, defaultOptions.codeFrame, {
+        ...defaultOptions.codeFrame,
+        enabled: false
+    }, preset?.codeFrame);
+const resolveCandidateFiles = (input)=>resolveToggleOption(input, defaultOptions.candidateFiles, {
+        ...defaultOptions.candidateFiles,
+        enabled: false
+    });
+const resolveConsole = (input, preset)=>resolveToggleOption(input, defaultOptions.console, {
+        ...defaultOptions.console,
+        enabled: false
+    }, preset?.console);
+const resolveErrors = (input)=>resolveToggleOption(input, defaultOptions.errors, {
+        unhandled: false
+    });
+const resolveStack = (input, preset)=>input ?? preset?.stack ?? defaultOptions.stack;
+const resolveOptions = (userOptions = {})=>{
+    const presetName = userOptions.preset ?? defaultOptions.preset;
+    const preset = presetOptions[presetName];
+    return {
+        preset: presetName,
+        header: resolveHeader(userOptions.header),
+        reproduction: resolveReproduction(userOptions.reproduction),
+        testLists: userOptions.testLists ?? defaultOptions.testLists,
+        failures: resolveFailures(userOptions.failures, preset),
+        codeFrame: resolveCodeFrame(userOptions.codeFrame, preset),
+        stack: resolveStack(userOptions.stack, preset),
+        candidateFiles: resolveCandidateFiles(userOptions.candidateFiles),
+        console: resolveConsole(userOptions.console, preset),
+        errors: resolveErrors(userOptions.errors)
+    };
+};
+const formatFullTestName = (test)=>{
+    const names = (test.parentNames || []).concat(test.name).filter(Boolean);
+    return names.join(' > ');
+};
+const formatFailureTitle = (failure, index, rootPath)=>{
+    const relativePath = relative(rootPath, failure.test.testPath);
+    const fullName = formatFullTestName(failure.test);
+    return {
+        relativePath,
+        fullName,
+        title: fullName ? `${relativePath} :: ${fullName}` : relativePath,
+        formattedId: String(index + 1).padStart(2, '0')
+    };
+};
+const cleanString = (value)=>stripAnsi(value);
+const TRUNCATION_SUFFIX = '... [truncated]';
+const FAILURE_LIST_VALUE_MAX_CHARS = 200;
+const truncateString = (value, maxChars)=>{
+    if (maxChars <= 0) return '';
+    if (value.length <= maxChars) return value;
+    if (maxChars <= TRUNCATION_SUFFIX.length) return TRUNCATION_SUFFIX.slice(0, maxChars);
+    return `${value.slice(0, maxChars - TRUNCATION_SUFFIX.length)}${TRUNCATION_SUFFIX}`;
+};
+const toSingleLine = (value)=>value.replace(/\r?\n/g, '\\n').replace(/\s+/g, ' ').trim();
+const formatFailureListValue = (value)=>{
+    if (void 0 === value) return '';
+    if (null === value) return 'null';
+    const raw = 'string' == typeof value ? value : JSON.stringify(value);
+    return truncateString(toSingleLine(cleanString(raw)), FAILURE_LIST_VALUE_MAX_CHARS);
+};
+const getErrorType = (error)=>{
+    const rawName = error.name || 'Error';
+    if (/AssertionError/.test(rawName)) return 'AssertionError';
+    if (/\bSnapshot\b.*\bmismatched\b/i.test(error.message)) return 'SnapshotMismatchError';
+    return rawName;
+};
+const formatPath = (rootPath, filePath)=>{
+    if (!filePath) return;
+    if (filePath.includes('://') || filePath.startsWith('node:')) return filePath;
+    const normalizedRoot = pathe_M_eThtNZ_resolve(rootPath);
+    const normalizedFile = pathe_M_eThtNZ_resolve(filePath);
+    if (normalizedFile.startsWith(normalizedRoot)) return relative(rootPath, normalizedFile);
+    return filePath;
+};
+const pickSnapshotSummary = (summary)=>({
+        added: summary?.added ?? 0,
+        updated: summary?.updated ?? 0,
+        unmatched: summary?.unmatched ?? 0,
+        removed: summary?.filesRemoved ?? 0,
+        unchecked: summary?.unchecked ?? 0
+    });
+const resolveStackFrames = (frames, options)=>{
+    const mode = options.stack;
+    if (false === mode || 'top' === mode) return [];
+    if ('full' === mode) return frames.slice(0, 50);
+    if ('number' == typeof mode) return frames.slice(0, Math.max(0, mode));
+    return [];
+};
+const resolveStackPayload = ({ rootPath, topFrame, stackFrames, mode })=>{
+    if (false === mode) return {
+        stackFrames: []
+    };
+    if ('top' === mode) return {
+        topFrame: topFrame ? {
+            file: formatPath(rootPath, topFrame.file),
+            line: topFrame.lineNumber ?? null,
+            column: topFrame.column ?? null,
+            method: topFrame.methodName ?? null
+        } : null,
+        stackFrames: []
+    };
+    return {
+        stackFrames
+    };
+};
+const collectFailures = ({ results, testResults, filterRerunTestPaths })=>{
+    const shouldIncludePath = (testPath)=>filterRerunTestPaths ? filterRerunTestPaths.includes(testPath) : true;
+    const failures = [];
+    for (const result of results)if ('fail' === result.status && result.errors?.length && shouldIncludePath(result.testPath)) failures.push({
+        test: result,
+        errors: result.errors
+    });
+    for (const result of testResults)if ('fail' === result.status && shouldIncludePath(result.testPath)) failures.push({
+        test: result,
+        errors: result.errors || []
+    });
+    return failures;
+};
+const formatConsoleLog = (log, options)=>{
+    const content = truncateString(cleanString(log.content), options.console.maxCharsPerEntry);
+    return `[${log.type}] ${log.name}: ${content}`;
+};
+const buildCandidateFiles = (frames, rootPath, maxCandidateFiles)=>{
+    const scores = new Map();
+    frames.forEach((frame, index)=>{
+        if (!frame.file) return;
+        const formattedPath = formatPath(rootPath, frame.file) || frame.file;
+        if (md_stackIgnores.some((entry)=>formattedPath.match(entry))) return;
+        const entry = scores.get(formattedPath) || {
+            score: 0,
+            line: void 0
+        };
+        const weight = Math.max(1, 10 - index);
+        entry.score += weight;
+        entry.line = entry.line ?? frame.lineNumber;
+        scores.set(formattedPath, entry);
+    });
+    return Array.from(scores.entries()).sort((a, b)=>b[1].score - a[1].score).slice(0, maxCandidateFiles).map(([path, meta])=>({
+            path,
+            line: meta.line
+        }));
+};
+const stringifyJson = (value)=>JSON.stringify(value, null, 2);
+const ensureSingleBlankLine = (lines)=>{
+    if (0 === lines.length) return;
+    while(lines.length > 0 && '' === lines[lines.length - 1])lines.pop();
+    lines.push('');
+};
+const pushHeading = (lines, level, text)=>{
+    ensureSingleBlankLine(lines);
+    lines.push(`${'#'.repeat(level)} ${text}`);
+    lines.push('');
+};
+const pushFencedBlock = (lines, lang, content)=>{
+    ensureSingleBlankLine(lines);
+    lines.push(`\`\`\`${lang}`);
+    lines.push(content);
+    lines.push('```');
+    lines.push('');
+};
+const stringifyYamlValue = (value)=>{
+    if (null == value) return 'null';
+    if ('string' == typeof value) return JSON.stringify(value);
+    if ('number' == typeof value || 'boolean' == typeof value) return String(value);
+    Array.isArray(value);
+    return JSON.stringify(value);
+};
+const quoteShellArg = (value, alwaysQuote = false)=>{
+    if (0 === value.length) return "''";
+    if (alwaysQuote || /[^A-Za-z0-9_\-./]/.test(value)) return `'${value.replace(/'/g, "'\\''")}'`;
+    return value;
+};
+const buildReproCommand = (relativePath, fullName, reproMode, agent)=>{
+    const args = [
+        'rstest',
+        relativePath
+    ];
+    if ('file+name' === reproMode && fullName) args.push('--testNamePattern', fullName);
+    const resolved = resolveCommand(agent, 'execute-local', args);
+    if (!resolved) {
+        const formattedArgs = args.map((arg)=>quoteShellArg(arg, arg === relativePath)).join(' ');
+        return `npx ${formattedArgs}`;
+    }
+    const formattedArgs = resolved.args.map((arg)=>quoteShellArg(arg, arg === relativePath)).join(' ');
+    return formattedArgs.length ? `${resolved.command} ${formattedArgs}` : resolved.command;
+};
+const detectPackageManagerAgent = async (cwd)=>{
+    const result = await detect({
+        cwd
+    });
+    return result?.agent ?? 'npm';
+};
+const normalizeFilePath = (value)=>{
+    if (!value) return;
+    if (value.startsWith('file://')) try {
+        return new URL(value).pathname;
+    } catch  {}
+    return value;
+};
+const md_isRelativePath = (value)=>/^\.\.\/?/.test(value);
+const md_stackIgnores = [
+    /\/node_modules\//,
+    /\/rstest\/packages\/core\/dist/,
+    /\/@rstest\/core/,
+    /\/tinypool/,
+    /\/chai/,
+    /\/node:\w+/,
+    /webpack\/runtime/,
+    /webpack\\runtime/,
+    '<anonymous>'
+];
+const trimLeadingNodeFrames = (frames)=>{
+    let startIndex = 0;
+    while(startIndex < frames.length){
+        const file = frames[startIndex]?.file;
+        if (file?.startsWith('node:')) {
+            startIndex += 1;
+            continue;
+        }
+        break;
+    }
+    return frames.slice(startIndex);
+};
+const dropNodeFrames = (frames)=>frames.filter((frame)=>!frame.file?.startsWith('node:'));
+const resolveModuleRoot = (spec)=>{
+    try {
+        if ('function' == typeof import.meta.resolve) {
+            const resolved = import.meta.resolve(`${spec}/package.json`);
+            const filePath = resolved.startsWith('file://') ? new URL(resolved).pathname : resolved;
+            return external_node_path_dirname(filePath);
+        }
+    } catch  {}
+    try {
+        return external_node_path_dirname(md_require.resolve(`${spec}/package.json`));
+    } catch  {
+        return null;
+    }
+};
+const excludedRoots = (()=>{
+    const resolvedRoots = [];
+    const candidates = [
+        '@rstest/core'
+    ];
+    for (const spec of candidates){
+        const root = resolveModuleRoot(spec);
+        if (root) resolvedRoots.push(root);
+    }
+    return resolvedRoots;
+})();
+const md_parseErrorStacktrace = async ({ stack, getSourcemap, fullStack = false })=>{
+    const frames = stack_trace_parser_esm_parse(stack).filter((frame)=>{
+        if (fullStack) return true;
+        if (!frame.file) return false;
+        const filePath = normalizeFilePath(frame.file) || '';
+        if (excludedRoots.some((root)=>filePath.startsWith(root))) return false;
+        return !md_stackIgnores.some((entry)=>filePath.match(entry));
+    }).map(async (frame)=>{
+        const file = normalizeFilePath(frame.file);
+        if (!file || !getSourcemap) return {
+            ...frame,
+            file
+        };
+        const sourcemap = await getSourcemap(file);
+        if (!sourcemap) return {
+            ...frame,
+            file
+        };
+        const traceMap = new TraceMap(sourcemap);
+        const { line, column, source, name } = originalPositionFor(traceMap, {
+            line: frame.lineNumber || 1,
+            column: frame.column || 1
+        });
+        if (!source) return null;
+        const mappedFile = md_isRelativePath(source) ? external_node_path_resolve(file || '', '../', source) : (()=>{
+            try {
+                return new URL(source).pathname;
+            } catch  {
+                return source;
+            }
+        })();
+        return {
+            ...frame,
+            file: mappedFile,
+            lineNumber: line || frame.lineNumber,
+            column: column || frame.column,
+            methodName: name || frame.methodName
+        };
+    });
+    const resolvedFrames = await Promise.all(frames);
+    const filteredFrames = resolvedFrames.filter((frame)=>null !== frame);
+    return dropNodeFrames(trimLeadingNodeFrames(filteredFrames));
+};
+const createCodeFrame = (filePath, { linesAbove, linesBelow, line, column })=>{
+    if (!filePath || !node_fs.existsSync(filePath)) return null;
+    const source = node_fs.readFileSync(filePath, 'utf-8');
+    const sourceLines = source.split(/\r?\n/);
+    const lineNumber = Math.max(1, line || 1);
+    const columnNumber = Math.max(1, column || 1);
+    const start = Math.max(1, lineNumber - linesAbove);
+    const end = Math.min(sourceLines.length, lineNumber + linesBelow);
+    const lineWidth = String(end).length;
+    const frameLines = [];
+    for(let i = start; i <= end; i += 1){
+        const linePrefix = String(i).padStart(lineWidth, ' ');
+        const lineContent = sourceLines[i - 1] ?? '';
+        frameLines.push(`${linePrefix} | ${lineContent}`);
+        if (i === lineNumber) {
+            const marker = ' '.repeat(Math.max(0, columnNumber - 1));
+            frameLines.push(`${' '.repeat(lineWidth)} | ${marker}^`);
+        }
+    }
+    return frameLines.join('\n');
+};
+class MdReporter {
+    rootPath;
+    config;
+    fileFilters;
+    options;
+    logsByTestPath = new Map();
+    constructor({ rootPath, config, options, testState, fileFilters }){
+        this.rootPath = rootPath;
+        this.config = config;
+        this.fileFilters = fileFilters ?? [];
+        this.options = resolveOptions(options);
+    }
+    isFocusedRun({ testResults }) {
+        if (this.fileFilters.length > 0) return true;
+        if (this.config.testNamePattern) return true;
+        if (testResults.length > 0 && testResults.length <= FOCUSED_RUN_MAX_TESTS) return true;
+        return false;
+    }
+    pushTestList({ lines, heading, tests, maxItems }) {
+        pushHeading(lines, 3, heading);
+        if (!tests.length) return void lines.push('None.');
+        const limit = Math.max(0, maxItems);
+        const truncated = limit > 0 && tests.length > limit;
+        const displayed = truncated ? tests.slice(0, limit) : tests;
+        for (const test of displayed){
+            const relativePath = relative(this.rootPath, test.testPath);
+            const fullName = formatFullTestName(test);
+            const title = fullName ? `${relativePath} :: ${fullName}` : relativePath;
+            lines.push(`- ${title}`);
+        }
+        if (truncated) {
+            ensureSingleBlankLine(lines);
+            lines.push(`Note: list truncated (showing ${limit} of ${tests.length}).`);
+        }
+    }
+    onUserConsoleLog(log) {
+        if (!this.options.console.enabled) return;
+        const logs = this.logsByTestPath.get(log.testPath) || [];
+        logs.push(formatConsoleLog(log, this.options));
+        this.logsByTestPath.set(log.testPath, logs);
+    }
+    renderFrontMatter(lines) {
+        const frontMatter = {
+            tool: "@rstest/core@0.9.4",
+            timestamp: new Date().toISOString()
+        };
+        if (this.options.header.env) frontMatter.runtime = {
+            node: process.version,
+            platform: process.platform,
+            cwd: process.cwd()
+        };
+        lines.push('---');
+        for (const [key, value] of Object.entries(frontMatter))lines.push(`${key}: ${stringifyYamlValue(value)}`);
+        lines.push('---');
+        lines.push('');
+    }
+    renderTestsSection(lines, tests) {
+        pushHeading(lines, 2, 'Tests');
+        this.pushTestList({
+            lines,
+            heading: 'Passed',
+            tests: tests.passed,
+            maxItems: DEFAULT_TEST_LIST_MAX_ITEMS
+        });
+        this.pushTestList({
+            lines,
+            heading: 'Skipped',
+            tests: tests.skipped,
+            maxItems: DEFAULT_TEST_LIST_MAX_ITEMS
+        });
+        if (tests.todo.length) this.pushTestList({
+            lines,
+            heading: 'Todo',
+            tests: tests.todo,
+            maxItems: DEFAULT_TEST_LIST_MAX_ITEMS
+        });
+    }
+    renderUnhandledErrors(lines, errors) {
+        if (!this.options.errors.unhandled || !errors?.length) return;
+        pushHeading(lines, 2, 'Unhandled Errors');
+        for(let index = 0; index < errors.length; index += 1){
+            const error = errors[index];
+            if (error) {
+                pushHeading(lines, 3, `Unhandled Error ${index + 1}`);
+                pushFencedBlock(lines, 'json', stringifyJson({
+                    name: error.name || 'Error',
+                    message: cleanString(error.message),
+                    stack: error.stack ? cleanString(error.stack) : void 0
+                }));
+            }
+        }
+    }
+    async onTestRunEnd({ results, testResults, duration, getSourcemap, snapshotSummary, unhandledErrors, filterRerunTestPaths }) {
+        const rootPath = this.rootPath || process.cwd();
+        const failures = collectFailures({
+            results,
+            testResults,
+            filterRerunTestPaths
+        });
+        const packageManagerAgent = this.options.reproduction ? await detectPackageManagerAgent(rootPath) : 'npm';
+        const failedTests = testResults.filter((result)=>'fail' === result.status);
+        const passedTests = testResults.filter((result)=>'pass' === result.status);
+        const skippedTests = testResults.filter((result)=>'skip' === result.status);
+        const todoTests = testResults.filter((result)=>'todo' === result.status);
+        const failedFiles = results.filter((result)=>'fail' === result.status);
+        const status = failedTests.length || failedFiles.length || unhandledErrors?.length ? 'fail' : 'pass';
+        const focusedRun = this.isFocusedRun({
+            testResults
+        });
+        const summaryPayload = {
+            status,
+            counts: {
+                testFiles: results.length,
+                failedFiles: failedFiles.length,
+                tests: testResults.length,
+                failedTests: failedTests.length,
+                passedTests: passedTests.length,
+                skippedTests: skippedTests.length,
+                todoTests: todoTests.length
+            },
+            durationMs: {
+                total: duration.totalTime,
+                build: duration.buildTime,
+                tests: duration.testTime
+            }
+        };
+        summaryPayload.snapshot = pickSnapshotSummary(snapshotSummary);
+        const lines = [];
+        this.renderFrontMatter(lines);
+        pushHeading(lines, 1, 'Rstest Test Execution Report');
+        pushHeading(lines, 2, 'Summary');
+        pushFencedBlock(lines, 'json', stringifyJson(summaryPayload));
+        if ('always' === this.options.testLists || 'pass' === status && focusedRun) this.renderTestsSection(lines, {
+            passed: passedTests,
+            skipped: skippedTests,
+            todo: todoTests
+        });
+        pushHeading(lines, 2, 'Failures');
+        if (failures.length) {
+            const maxFailures = Math.max(0, this.options.failures.max);
+            const shouldTruncate = failures.length > maxFailures;
+            const displayedFailures = shouldTruncate ? failures.slice(0, maxFailures) : failures;
+            if (shouldTruncate) {
+                ensureSingleBlankLine(lines);
+                lines.push(`Truncated failures: showing full details for first ${maxFailures} of ${failures.length} failures.`);
+                lines.push(`For failures beyond ${maxFailures}, only minimal fields are shown in the failure list. Use the repro command to rerun a specific failure for full details.`);
+                lines.push('');
+                pushHeading(lines, 3, 'Failure List');
+                for(let index = 0; index < failures.length; index += 1){
+                    const failure = failures[index];
+                    if (!failure) continue;
+                    const { relativePath, fullName, title, formattedId } = formatFailureTitle(failure, index, rootPath);
+                    lines.push(`- [F${formattedId}] ${title}`);
+                    const primaryError = failure.errors[0] || {
+                        message: 'Unknown error'
+                    };
+                    const type = getErrorType({
+                        name: primaryError.name,
+                        message: primaryError.message || ''
+                    });
+                    lines.push(`  - type: ${type}`);
+                    if (primaryError.message) lines.push(`  - message: ${formatFailureListValue(primaryError.message)}`);
+                    if (void 0 !== primaryError.expected) lines.push(`  - expected: ${formatFailureListValue(primaryError.expected)}`);
+                    if (void 0 !== primaryError.actual) lines.push(`  - actual: ${formatFailureListValue(primaryError.actual)}`);
+                    if (this.options.reproduction) lines.push(`  - repro: ${buildReproCommand(relativePath, fullName, this.options.reproduction, packageManagerAgent)}`);
+                }
+                pushHeading(lines, 3, `Failure Details (first ${maxFailures})`);
+            }
+            for(let index = 0; index < displayedFailures.length; index += 1){
+                const failure = displayedFailures[index];
+                if (!failure) continue;
+                const { relativePath, fullName, title, formattedId } = formatFailureTitle(failure, index, rootPath);
+                pushHeading(lines, 3, `[F${formattedId}] ${title}`);
+                if (this.options.reproduction) {
+                    lines.push('repro:');
+                    pushFencedBlock(lines, 'bash', buildReproCommand(relativePath, fullName, this.options.reproduction, packageManagerAgent));
+                }
+                const errorEntries = await Promise.all((failure.errors.length ? failure.errors : [
+                    {
+                        message: 'Unknown error'
+                    }
+                ]).map(async (error)=>{
+                    const candidateFrames = error.stack ? await md_parseErrorStacktrace({
+                        stack: error.stack,
+                        getSourcemap,
+                        fullStack: false
+                    }) : [];
+                    const fullFrames = error.stack ? await md_parseErrorStacktrace({
+                        stack: error.stack,
+                        getSourcemap,
+                        fullStack: error.fullStack
+                    }) : candidateFrames;
+                    const trimmedFrames = resolveStackFrames(fullFrames, this.options);
+                    const topFrame = fullFrames[0] ?? candidateFrames[0];
+                    return {
+                        error,
+                        topFrame,
+                        candidateFrames,
+                        stackFrames: trimmedFrames
+                    };
+                }));
+                const candidateFiles = this.options.candidateFiles.enabled ? buildCandidateFiles(errorEntries.flatMap((entry)=>entry.candidateFrames), rootPath, this.options.candidateFiles.max) : [];
+                const failurePayload = {
+                    testPath: relativePath,
+                    project: failure.test.project,
+                    fullName,
+                    status: failure.test.status,
+                    duration: failure.test.duration,
+                    retryCount: failure.test.retryCount ?? 0,
+                    errors: errorEntries.map(({ error, topFrame, stackFrames })=>{
+                        const mappedStackFrames = stackFrames.map((frame)=>({
+                                file: formatPath(rootPath, frame.file),
+                                line: frame.lineNumber,
+                                column: frame.column,
+                                method: frame.methodName
+                            }));
+                        const hasDiff = Boolean(error.diff);
+                        return {
+                            type: getErrorType(error),
+                            message: cleanString(error.message),
+                            expected: hasDiff ? void 0 : error.expected,
+                            actual: hasDiff ? void 0 : error.actual,
+                            ...resolveStackPayload({
+                                rootPath,
+                                topFrame,
+                                stackFrames: mappedStackFrames,
+                                mode: this.options.stack
+                            })
+                        };
+                    }),
+                    candidateFiles: candidateFiles.length ? candidateFiles : void 0
+                };
+                lines.push('details:');
+                pushFencedBlock(lines, 'json', stringifyJson(failurePayload));
+                for(let errorIndex = 0; errorIndex < errorEntries.length; errorIndex += 1){
+                    const entry = errorEntries[errorIndex];
+                    if (entry?.error.diff) {
+                        const label = errorEntries.length > 1 ? `diff (error ${errorIndex + 1}):` : 'diff:';
+                        lines.push(label);
+                        pushFencedBlock(lines, 'diff', cleanString(entry.error.diff));
+                    }
+                }
+                if (this.options.codeFrame.enabled) for(let errorIndex = 0; errorIndex < errorEntries.length; errorIndex += 1){
+                    const entry = errorEntries[errorIndex];
+                    if (!entry?.topFrame?.file || !entry.topFrame.lineNumber) continue;
+                    const codeFrame = createCodeFrame(entry.topFrame.file, {
+                        linesAbove: this.options.codeFrame.linesAbove,
+                        linesBelow: this.options.codeFrame.linesBelow,
+                        line: entry.topFrame.lineNumber,
+                        column: entry.topFrame.column || 1
+                    });
+                    if (codeFrame) {
+                        lines.push(`codeFrame (error ${errorIndex + 1}):`);
+                        pushFencedBlock(lines, 'text', codeFrame);
+                    }
+                }
+                if (this.options.console.enabled) {
+                    const consoleLogs = this.logsByTestPath.get(failure.test.testPath) || [];
+                    const limitedLogs = consoleLogs.slice(Math.max(0, consoleLogs.length - this.options.console.maxLogsPerTestPath));
+                    if (limitedLogs.length) {
+                        lines.push('console:');
+                        pushFencedBlock(lines, 'text', limitedLogs.join('\n'));
+                    }
+                }
+            }
+        } else {
+            lines.push('No test failures reported.');
+            if ('pass' === status && !focusedRun && 'always' !== this.options.testLists) {
+                ensureSingleBlankLine(lines);
+                lines.push('Note: all tests passed. Lists omitted for brevity.');
+            }
+        }
+        this.renderUnhandledErrors(lines, unhandledErrors);
+        const output = lines.join('\n');
+        process.stdout.write(`${output}\n`);
+    }
+}
+class VerboseReporter extends DefaultReporter {
+    verboseOptions = {};
+    constructor({ rootPath, options, config, testState, projectConfigs }){
+        super({
+            rootPath,
+            options: {
+                ...options,
+                summary: true
+            },
+            config,
+            testState,
+            projectConfigs
+        });
+        this.verboseOptions = options;
+    }
+    onTestFileResult(test) {
+        this.statusRenderer?.onTestFileResult();
+        const projectConfig = this.projectConfigs.get(test.project);
+        const hideSkippedTestFiles = projectConfig?.hideSkippedTestFiles ?? this.config.hideSkippedTestFiles;
+        if (hideSkippedTestFiles && 'skip' === test.status) return;
+        const relativePath = relative(this.rootPath, test.testPath);
+        const slowTestThreshold = projectConfig?.slowTestThreshold ?? this.config.slowTestThreshold;
+        const hideSkippedTests = projectConfig?.hideSkippedTests ?? this.config.hideSkippedTests;
+        logFileTitle(test, relativePath, true, this.verboseOptions.showProjectName);
+        for (const result of test.results)logCase(result, {
+            slowTestThreshold,
+            hideSkippedTests
+        });
+    }
+}
+class TestStateManager {
+    runningModules = new Map();
+    testModules = [];
+    testFiles = void 0;
+    onTestFileStart(testPath) {
+        this.runningModules.set(testPath, {
+            runningTests: [],
+            results: []
+        });
+    }
+    onTestCaseResult(result) {
+        const currentModule = this.runningModules.get(result.testPath);
+        if (currentModule) {
+            const filteredRunningTests = currentModule.runningTests.filter((t)=>t.testId !== result.testId);
+            this.runningModules.set(result.testPath, {
+                runningTests: filteredRunningTests,
+                results: [
+                    ...currentModule.results,
+                    result
+                ]
+            });
+        } else this.runningModules.set(result.testPath, {
+            runningTests: [],
+            results: [
+                result
+            ]
+        });
+    }
+    onTestCaseStart(test) {
+        const currentModule = this.runningModules.get(test.testPath);
+        if (currentModule) {
+            const filteredRunningTests = currentModule.runningTests.filter((t)=>t.testId !== test.testId);
+            this.runningModules.set(test.testPath, {
+                runningTests: [
+                    ...filteredRunningTests,
+                    test
+                ],
+                results: currentModule.results
+            });
+        } else this.runningModules.set(test.testPath, {
+            runningTests: [
+                test
+            ],
+            results: []
+        });
+    }
+    getCountOfFailedTests() {
+        const testResults = Array.from(this.runningModules.values()).flatMap(({ results })=>results).concat(this.testModules.flatMap((mod)=>mod.results.length > 0 ? mod.results : [
+                {
+                    status: mod.status
+                }
+            ]));
+        return testResults.filter((t)=>'fail' === t.status).length;
+    }
+    onTestFileResult(test) {
+        this.runningModules.delete(test.testPath);
+        this.testModules.push(test);
+    }
+    reset() {
+        this.runningModules.clear();
+        this.testModules = [];
+        this.testFiles = void 0;
+    }
+}
+function formatEnvironmentName(name) {
+    return name.replace(/[^a-zA-Z0-9\-_$]/g, '_');
+}
+class Rstest {
+    cwd;
+    command;
+    fileFilters;
+    configFilePath;
+    reporters;
+    snapshotManager;
+    version;
+    rootPath;
+    originalConfig;
+    normalizedConfig;
+    reporterResults = {
+        results: [],
+        testResults: []
+    };
+    stateManager = new TestStateManager();
+    testState = {
+        getRunningModules: ()=>this.stateManager.runningModules,
+        getTestModules: ()=>this.stateManager.testModules,
+        getTestFiles: ()=>{
+            if ('watch' === this.command) return;
+            return this.stateManager.testFiles;
+        }
+    };
+    projects = [];
+    constructor({ cwd = process.cwd(), command, fileFilters, configFilePath, projects }, userConfig){
+        this.cwd = cwd;
+        this.command = command;
+        this.fileFilters = fileFilters;
+        this.configFilePath = configFilePath;
+        const rootPath = userConfig.root ? getAbsolutePath(cwd, userConfig.root) : cwd;
+        const rstestConfig = withDefaultConfig({
+            ...userConfig,
+            root: rootPath
+        });
+        if ('watch' === command && rstestConfig.shard) {
+            logger_logger.error('Test sharding is not supported in watch mode.');
+            process.exit(1);
+        }
+        const snapshotManager = new SnapshotManager({
+            updateSnapshot: rstestConfig.update ? 'all' : dist_m ? 'none' : 'new'
+        });
+        this.snapshotManager = snapshotManager;
+        this.version = "0.9.4";
+        this.rootPath = rootPath;
+        this.originalConfig = userConfig;
+        this.normalizedConfig = rstestConfig;
+        this.projects = projects.length ? projects.map((project)=>{
+            project.config.root = getAbsolutePath(rootPath, project.config.root);
+            if (project.config.shard && (project.config.shard.count !== rstestConfig.shard?.count || project.config.shard.index !== rstestConfig.shard?.index)) {
+                logger_logger.error(`The \`shard\` option is a global option and cannot be set per-project.\nglobal \`shard\` option:\n  count: ${rstestConfig.shard?.count}, index: ${rstestConfig.shard?.index}\nproject "${project.config.name}" shard option:\n  count: ${project.config.shard.count}, index: ${project.config.shard.index}`);
+                process.exit(1);
+            }
+            const config = withDefaultConfig(project.config);
+            config.isolate = rstestConfig.isolate;
+            config.coverage = rstestConfig.coverage;
+            config.bail = rstestConfig.bail;
+            config.source ??= {};
+            if (config.source.tsconfigPath) config.source.tsconfigPath = getAbsolutePath(config.root, config.source.tsconfigPath);
+            else {
+                const tsconfigPath = join(config.root, TS_CONFIG_FILE);
+                if (existsSync(tsconfigPath)) config.source.tsconfigPath = tsconfigPath;
+            }
+            return {
+                configFilePath: project.configFilePath,
+                rootPath: config.root,
+                name: config.name,
+                _globalSetups: false,
+                outputModule: config.output?.module ?? 'false' !== process.env.RSTEST_OUTPUT_MODULE,
+                environmentName: formatEnvironmentName(config.name),
+                normalizedConfig: config
+            };
+        }) : [
+            {
+                configFilePath,
+                rootPath,
+                _globalSetups: false,
+                name: rstestConfig.name,
+                outputModule: rstestConfig.output?.module ?? 'false' !== process.env.RSTEST_OUTPUT_MODULE,
+                environmentName: formatEnvironmentName(rstestConfig.name),
+                normalizedConfig: rstestConfig
+            }
+        ];
+        const projectConfigs = new Map(this.projects.map((p)=>[
+                p.name,
+                p.normalizedConfig
+            ]));
+        const reporters = 'list' !== command ? createReporters(rstestConfig.reporters, {
+            rootPath,
+            config: rstestConfig,
+            testState: this.testState,
+            fileFilters: this.fileFilters,
+            projectConfigs,
+            options: {
+                showProjectName: projects.length > 1
+            }
+        }).filter((r)=>{
+            if ('merge-reports' === command && r instanceof BlobReporter) return false;
+            return true;
+        }) : [];
+        this.reporters = reporters;
+    }
+    updateReporterResultState(results, testResults, deletedEntries = []) {
+        results.forEach((item)=>{
+            const existingIndex = this.reporterResults.results.findIndex((r)=>r.testPath === item.testPath);
+            if (-1 !== existingIndex) this.reporterResults.results[existingIndex] = item;
+            else this.reporterResults.results.push(item);
+        });
+        const testPathsToUpdate = new Set(testResults.map((r)=>r.testPath));
+        this.reporterResults.testResults = this.reporterResults.testResults.filter((r)=>!testPathsToUpdate.has(r.testPath));
+        this.reporterResults.testResults.push(...testResults);
+        if (deletedEntries.length > 0) {
+            const deletedPathsSet = new Set(deletedEntries);
+            this.reporterResults.results = this.reporterResults.results.filter((r)=>!deletedPathsSet.has(r.testPath));
+            this.reporterResults.testResults = this.reporterResults.testResults.filter((r)=>!deletedPathsSet.has(r.testPath));
+        }
+    }
+}
+const reportersMap = {
+    default: DefaultReporter,
+    verbose: VerboseReporter,
+    'github-actions': GithubActionsReporter,
+    junit: JUnitReporter,
+    md: MdReporter,
+    blob: BlobReporter
+};
+function createReporters(reporters, initConfig = {}) {
+    const result = castArray(reporters).map((reporter)=>{
+        if ('string' == typeof reporter || Array.isArray(reporter)) {
+            const [name, options = {}] = 'string' == typeof reporter ? [
+                reporter,
+                {}
+            ] : reporter;
+            if (name in reportersMap) {
+                const Reporter = reportersMap[name];
+                return new Reporter({
+                    ...initConfig,
+                    options: {
+                        ...initConfig.options || {},
+                        ...options
+                    }
+                });
+            }
+            throw new Error(`Reporter ${name} not found. Please install it or use a built-in reporter.`);
+        }
+        return reporter;
+    });
+    return result;
+}
+function core_createRstest({ config, projects, configFilePath }, command, fileFilters) {
+    const context = new Rstest({
+        cwd: process.cwd(),
+        command,
+        fileFilters,
+        configFilePath,
+        projects
+    }, config);
+    const runTests = async ()=>{
+        const { runTests } = await import("./0~runTests.js");
+        await runTests(context);
+    };
+    const listTests = async (options)=>{
+        const { listTests } = await import("./0~listTests.js");
+        return listTests(context, options);
+    };
+    const mergeReports = async (options)=>{
+        const { mergeReports } = await import("./0~mergeReports.js");
+        await mergeReports(context, options);
+    };
+    return {
+        context,
+        runTests,
+        listTests,
+        mergeReports
+    };
+}
+function defineConfig(config) {
+    return config;
+}
+function defineProject(config) {
+    return config;
+}
+export { config_loadConfig as loadConfig, core_createRstest as createRstest, core_namespaceObject, defineConfig, defineProject, detect, error_parseErrorStacktrace as parseErrorStacktrace, error_printError as printError, formatStack, init_initCli as initCli, init_namespaceObject, mergeProjectConfig, mergeRstestConfig, resolveCommand, runCLI, runRest };

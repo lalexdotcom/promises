@@ -1,0 +1,274 @@
+import "node:module";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, relative } from "node:path";
+import { prepareRsbuild, createPool, createRsbuildServer, runGlobalTeardown, runGlobalSetup } from "./0~8843.js";
+import { getTestEntries, resolveShardedEntries, prettyTestPath, ROOT_SUITE_NAME } from "./4411.js";
+import { logger as logger_logger, getTaskNameWithPrefix, color as logger_color, bgColor } from "./6830.js";
+const collectNodeTests = async ({ context, nodeProjects, globTestSourceEntries })=>{
+    const { getSetupFiles } = await import("./255.js");
+    if (0 === nodeProjects.length) return {
+        list: [],
+        getSourceMap: async ()=>null,
+        close: async ()=>void 0
+    };
+    const setupFiles = Object.fromEntries(nodeProjects.map((project)=>{
+        const { environmentName, rootPath, normalizedConfig: { setupFiles } } = project;
+        return [
+            environmentName,
+            getSetupFiles(setupFiles, rootPath)
+        ];
+    }));
+    const globalSetupFiles = Object.fromEntries(context.projects.map((project)=>{
+        const { environmentName, rootPath, normalizedConfig: { globalSetup } } = project;
+        return [
+            environmentName,
+            getSetupFiles(globalSetup, rootPath)
+        ];
+    }));
+    const rsbuildInstance = await prepareRsbuild(context, globTestSourceEntries, setupFiles, globalSetupFiles);
+    const { getRsbuildStats, closeServer } = await createRsbuildServer({
+        globTestSourceEntries,
+        globalSetupFiles,
+        isWatchMode: false,
+        inspectedConfig: {
+            ...context.normalizedConfig,
+            projects: nodeProjects.map((p)=>p.normalizedConfig)
+        },
+        setupFiles,
+        rsbuildInstance,
+        rootPath: context.rootPath
+    });
+    const pool = await createPool({
+        context
+    });
+    const updateSnapshot = context.snapshotManager.options.updateSnapshot;
+    const returns = await Promise.all(nodeProjects.map(async (project)=>{
+        const { entries, setupEntries, globalSetupEntries, getSourceMaps, getAssetFiles, assetNames } = await getRsbuildStats({
+            environmentName: project.environmentName
+        });
+        if (entries.length && globalSetupEntries.length && !project._globalSetups) {
+            project._globalSetups = true;
+            const files = globalSetupEntries.flatMap((e)=>e.files);
+            const assetFilesPromise = getAssetFiles(files);
+            const sourceMapsPromise = getSourceMaps(files);
+            const [assetFiles, sourceMaps] = await Promise.all([
+                assetFilesPromise,
+                sourceMapsPromise
+            ]);
+            const { success, errors } = await runGlobalSetup({
+                globalSetupEntries,
+                assetFiles,
+                sourceMaps,
+                interopDefault: true,
+                outputModule: project.outputModule
+            });
+            if (!success) return {
+                list: [],
+                errors,
+                assetNames,
+                getSourceMaps: ()=>null
+            };
+        }
+        const list = await pool.collectTests({
+            entries,
+            setupEntries,
+            getAssetFiles,
+            getSourceMaps,
+            project,
+            updateSnapshot
+        });
+        return {
+            list,
+            getSourceMaps,
+            assetNames
+        };
+    }));
+    return {
+        list: returns.flatMap((r)=>r.list),
+        errors: returns.flatMap((r)=>r.errors || []),
+        getSourceMap: async (name)=>{
+            const resource = returns.find((r)=>r.assetNames.includes(name));
+            return (await resource?.getSourceMaps([
+                name
+            ]))?.[name];
+        },
+        close: async ()=>{
+            await runGlobalTeardown();
+            await closeServer();
+            await pool.close();
+        }
+    };
+};
+const collectBrowserTests = async ({ context, browserProjects, shardedEntries })=>{
+    if (0 === browserProjects.length) return {
+        list: [],
+        close: async ()=>void 0
+    };
+    const { loadBrowserModule } = await import("./0~browserLoader.js");
+    const projectRoots = browserProjects.map((p)=>p.rootPath);
+    const { validateBrowserConfig, listBrowserTests } = await loadBrowserModule({
+        projectRoots
+    });
+    validateBrowserConfig(context);
+    return listBrowserTests(context, {
+        shardedEntries
+    });
+};
+const collectTestFiles = async ({ context, globTestSourceEntries })=>{
+    const projectLists = await Promise.all(context.projects.map(async (project)=>{
+        const files = await globTestSourceEntries(project.environmentName);
+        return Object.values(files).map((testPath)=>({
+                testPath,
+                project: project.name,
+                tests: []
+            }));
+    }));
+    const list = projectLists.flat();
+    return {
+        close: async ()=>void 0,
+        errors: [],
+        list,
+        getSourceMap: async ()=>null
+    };
+};
+const collectAllTests = async ({ context, globTestSourceEntries, shardedEntries })=>{
+    const browserProjects = context.projects.filter((p)=>p.normalizedConfig.browser.enabled);
+    const nodeProjects = context.projects.filter((p)=>!p.normalizedConfig.browser.enabled);
+    const [nodeResult, browserResult] = await Promise.all([
+        collectNodeTests({
+            context,
+            nodeProjects,
+            globTestSourceEntries
+        }),
+        collectBrowserTests({
+            context,
+            browserProjects,
+            shardedEntries
+        })
+    ]);
+    return {
+        errors: nodeResult.errors,
+        list: [
+            ...nodeResult.list,
+            ...browserResult.list
+        ],
+        getSourceMap: nodeResult.getSourceMap,
+        close: async ()=>{
+            await Promise.all([
+                nodeResult.close(),
+                browserResult.close()
+            ]);
+        }
+    };
+};
+async function listTests(context, { filesOnly, json, printLocation, includeSuites }) {
+    const { rootPath } = context;
+    const { shard } = context.normalizedConfig;
+    const shardedEntries = await resolveShardedEntries(context);
+    const testEntries = {};
+    let shardedBrowserEntries;
+    if (shard && shardedEntries) {
+        for (const [key, value] of shardedEntries.entries())testEntries[key] = value.entries;
+        shardedBrowserEntries = new Map();
+        for (const p of context.projects.filter((p)=>p.normalizedConfig.browser.enabled))shardedBrowserEntries.set(p.environmentName, {
+            entries: testEntries[p.environmentName] || {}
+        });
+    }
+    const globTestSourceEntries = async (name)=>{
+        if (testEntries[name]) return testEntries[name];
+        const { include, exclude, includeSource, root } = context.projects.find((p)=>p.environmentName === name).normalizedConfig;
+        const entries = await getTestEntries({
+            include,
+            exclude: exclude.patterns,
+            rootPath,
+            projectRoot: root,
+            fileFilters: context.fileFilters || [],
+            includeSource
+        });
+        testEntries[name] = entries;
+        return entries;
+    };
+    const { list, close, getSourceMap, errors = [] } = filesOnly ? await collectTestFiles({
+        context,
+        globTestSourceEntries
+    }) : await collectAllTests({
+        context,
+        globTestSourceEntries,
+        shardedEntries: shardedBrowserEntries
+    });
+    const tests = [];
+    const traverseTests = (test)=>{
+        if ([
+            'skip',
+            'todo'
+        ].includes(test.runMode)) return;
+        if ('case' === test.type || includeSuites && 'suite' === test.type && test.name !== ROOT_SUITE_NAME) tests.push({
+            file: test.testPath,
+            name: getTaskNameWithPrefix(test),
+            location: test.location,
+            type: test.type,
+            project: showProject ? test.project : void 0
+        });
+        if ('suite' === test.type) for (const child of test.tests)traverseTests(child);
+    };
+    const hasError = list.some((file)=>file.errors?.length) || errors.length;
+    const showProject = context.projects.length > 1;
+    if (hasError) {
+        const { printError } = await import("./3145.js");
+        process.exitCode = 1;
+        for (const file of list){
+            const relativePath = relative(rootPath, file.testPath);
+            if (file.errors?.length) {
+                logger_logger.log(`${bgColor('bgRed', ' FAIL ')} ${relativePath}`);
+                for (const error of file.errors)await printError(error, async (name)=>{
+                    const sourceMap = await getSourceMap(name);
+                    return sourceMap ? JSON.parse(sourceMap) : null;
+                }, rootPath);
+            }
+        }
+        if (errors.length) {
+            const { printError } = await import("./3145.js");
+            for (const error of errors || []){
+                logger_logger.stderr(bgColor('bgRed', ' Unhandled Error '));
+                await printError(error, async (name)=>{
+                    const sourceMap = await getSourceMap(name);
+                    return sourceMap ? JSON.parse(sourceMap) : null;
+                }, rootPath);
+            }
+        }
+        await close();
+        return list;
+    }
+    for (const file of list){
+        if (filesOnly) {
+            if (showProject) tests.push({
+                file: file.testPath,
+                project: file.project,
+                type: 'file'
+            });
+            else tests.push({
+                file: file.testPath,
+                type: 'file'
+            });
+            continue;
+        }
+        for (const test of file.tests)traverseTests(test);
+    }
+    if (json && 'false' !== json) {
+        const content = JSON.stringify(tests, null, 2);
+        if (true !== json && 'true' !== json) {
+            const jsonPath = isAbsolute(json) ? json : join(rootPath, json);
+            mkdirSync(dirname(jsonPath), {
+                recursive: true
+            });
+            writeFileSync(jsonPath, content);
+        } else logger_logger.log(content);
+    } else for (const test of tests){
+        let shortPath = relative(rootPath, test.file);
+        if (test.location && printLocation) shortPath = `${shortPath}:${test.location.line}:${test.location.column}`;
+        logger_logger.log(test.name ? `${logger_color.dim(`${shortPath} > `)}${test.name}` : prettyTestPath(shortPath));
+    }
+    await close();
+    return list;
+}
+export { listTests };

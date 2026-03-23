@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { TimeoutError, slice, timeout, unsync, wait } from '../src/index';
+import { slice, TimeoutError, timeout, unsync, wait } from '../src/index';
 
 // ─── TEST-07 : wait ──────────────────────────────────────────────────────────
 
@@ -27,23 +27,20 @@ describe('timeout', () => {
     expect(result).toBe(42);
   });
 
-  test(
-    'TEST-08c: propagates rejection from inner promise — not TimeoutError, not undefined (BUG-02 fix)',
-    async () => {
-      // Inner promise rejects immediately, well before the 500 ms timeout.
-      // Must reject with the original Error, NOT with TimeoutError.
-      let caughtError: unknown;
-      try {
-        await timeout(Promise.reject(new Error('boom')), 500);
-      } catch (e) {
-        caughtError = e;
-      }
-      expect(caughtError).toBeDefined();
-      expect(caughtError).toBeInstanceOf(Error);
-      expect(caughtError).not.toBeInstanceOf(TimeoutError);
-      expect((caughtError as Error).message).toBe('boom');
-    },
-  );
+  test('TEST-08c: propagates rejection from inner promise — not TimeoutError, not undefined (BUG-02 fix)', async () => {
+    // Inner promise rejects immediately, well before the 500 ms timeout.
+    // Must reject with the original Error, NOT with TimeoutError.
+    let caughtError: unknown;
+    try {
+      await timeout(Promise.reject(new Error('boom')), 500);
+    } catch (e) {
+      caughtError = e;
+    }
+    expect(caughtError).toBeDefined();
+    expect(caughtError).toBeInstanceOf(Error);
+    expect(caughtError).not.toBeInstanceOf(TimeoutError);
+    expect((caughtError as Error).message).toBe('boom');
+  });
 
   test('TEST-08d: late resolution after timeout is silenced (no unhandled rejection)', async () => {
     // Inner promise resolves AFTER the 30 ms timeout fires.
