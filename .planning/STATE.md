@@ -3,12 +3,12 @@
 ## Current Phase
 
 **Phase:** 1
-**Status:** Not Started
+**Status:** Planned
 **Goal:** Source code has correct runtime behavior and accurate TypeScript types — all known bugs fixed, type inference accurate, dead code removed.
 
 ## Next Up
 
-Run `/gsd-plan-phase 1` to start execution.
+Run `/gsd-execute-phase 1` to start execution.
 
 ## Project Summary
 
