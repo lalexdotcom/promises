@@ -60,17 +60,17 @@ class PromisePoolImpl implements PromisePool {
 
 	private currentIndex = 0;
 
-	#running: Promise<any>[] = [];
+	#running: Promise<unknown>[] = [];
 	#enqueued: QueuedPromise[] = [];
-	private result: any[] = [];
+	private result: unknown[] = [];
 
 	#isStarted = false;
 	#isClosed = false;
 	#isResolved = false;
 
-	#promise: Promise<any[]>;
-	#resolve!: (...args: any[]) => void;
-	#reject!: (...args: any[]) => void;
+	#promise: Promise<unknown[]>;
+	#resolve!: (value: unknown[]) => void;
+	#reject!: (reason?: unknown) => void;
 
 	#listeners: Partial<Record<POOL_EVENT_TYPE, Map<() => void, boolean>>> = {};
 
@@ -186,10 +186,6 @@ class PromisePoolImpl implements PromisePool {
 		return this.#enqueued.length;
 	}
 
-	get pending(): number {
-		return this.#enqueued.length;
-	}
-
 	get isStarted() {
 		return this.#isStarted;
 	}
@@ -209,7 +205,6 @@ class PromisePoolImpl implements PromisePool {
 			this.#running.splice(promiseIndex, 1);
 			this.result[index] = result;
 			this.verbose('info', `promise@${index} done`);
-			// this.#emit('next');
 			this.runNext();
 		} else {
 			this.verbose('warn', 'unknown promise resolved');
@@ -227,7 +222,6 @@ class PromisePoolImpl implements PromisePool {
 				this.#reject(error);
 			} else {
 				console.error(error instanceof Error ? error.message : JSON.stringify(error));
-				// this.#emit('next');
 				this.runNext();
 			}
 			this.verbose('error', `promise@${index} error`, error);
@@ -248,17 +242,23 @@ export const pool = Object.assign(
 	(concurrency = 10, options?: Omit<PoolOptions, 'concurrency'>): PromisePool =>
 		new PromisePoolImpl({ ...options, concurrency }),
 	{
-		parallel: (commands: PromiseFunction[], options?: PoolOptions): Promise<any[]> => {
-			if (!commands.length) return Promise.resolve([]);
+		parallel: <T extends PromiseFunction[]>(
+			commands: [...T],
+			options?: PoolOptions,
+		): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> => {
+			if (!commands.length) return Promise.resolve([]) as Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>;
 			const parallelPool = new PromisePoolImpl({ concurrency: Number.POSITIVE_INFINITY, ...options });
 			for (const cmd of commands) parallelPool.enqueue(cmd);
-			return parallelPool.close();
+			return parallelPool.close() as Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>;
 		},
-		serial: (commands: PromiseFunction[], options?: Omit<PoolOptions, 'concurrency'>): Promise<any[]> => {
-			if (!commands.length) return Promise.resolve([]);
+		serial: <T extends PromiseFunction[]>(
+			commands: [...T],
+			options?: Omit<PoolOptions, 'concurrency'>,
+		): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> => {
+			if (!commands.length) return Promise.resolve([]) as Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>;
 			const parallelPool = new PromisePoolImpl({ ...options, concurrency: 1 });
 			for (const cmd of commands) parallelPool.enqueue(cmd);
-			return parallelPool.close();
+			return parallelPool.close() as Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>;
 		},
 	},
 );
