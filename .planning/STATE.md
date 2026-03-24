@@ -54,3 +54,12 @@ All planning artifacts in place:
 - ✅ `.planning/STATE.md` — Milestone initialized and ready
 
 **Build Status:** All v1.0 artifacts (src/, tests/, README, package.json) stable and passing.
+
+## Pending Todos
+
+| ID | Title | Area | Created |
+|----|-------|------|---------|
+| TODO-01 | Redesign 'resolve' event — fire per-promise, not pool-wide | features | 2026-03-24 |
+| TODO-02 | Add 'error' event for promise rejection with state context | features | 2026-03-24 |
+
+*Design clarifications needed before Phase 5 execution.*
