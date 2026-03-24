@@ -330,6 +330,8 @@ class PromisePoolImpl implements PromisePool {
     if (promiseIndex >= 0) {
       this.#running.splice(promiseIndex, 1);
       this.result[index] = result;
+      // Emit 'resolve' event per-promise with the result value (before 'next')
+      this.#emit('resolve', result);
       this.runNext();
     }
   }
@@ -342,6 +344,16 @@ class PromisePoolImpl implements PromisePool {
     const promiseIndex = this.#running.indexOf(p);
     if (promiseIndex >= 0) {
       this.#running.splice(promiseIndex, 1);
+      // Emit 'error' event per-promise with error and current pool context (always, before rejectOnError handling)
+      const context: PoolEventContext = {
+        runningCount: this.#running.length,
+        waitingCount: this.#enqueued.length,
+        pendingCount: this.#running.length + this.#enqueued.length,
+        isStarted: this.#isStarted,
+        isClosed: this.#isClosed,
+        isResolved: this.#isResolved,
+      };
+      this.#emit('error', error, context);
       this.result[index] = new PoolErrorImpl(
         `Promise ${index} was rejected`,
         error,
