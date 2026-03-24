@@ -65,6 +65,48 @@ export interface PromisePool {
   readonly isResolved: boolean;
 
   /**
+   * Maximum number of promises that can run simultaneously (from PoolOptions).
+   * This value is immutable for the lifetime of the pool.
+   */
+  readonly concurrency: number;
+
+  /**
+   * Number of promises currently executing (started but not yet settled).
+   * Equivalent to `running` property.
+   */
+  readonly runningCount: number;
+
+  /**
+   * Number of promises enqueued but not yet started.
+   * Equivalent to `waiting` property.
+   */
+  readonly waitingCount: number;
+
+  /**
+   * Total number of promises not yet settled (both running and waiting).
+   * Equivalent to `runningCount + waitingCount`.
+   */
+  readonly pendingCount: number;
+
+  /**
+   * Number of promises that have successfully resolved.
+   * Monotonically increases (never decreases or resets).
+   */
+  readonly resolvedCount: number;
+
+  /**
+   * Number of promises that have been rejected.
+   * Monotonically increases (never decreases or resets).
+   */
+  readonly rejectedCount: number;
+
+  /**
+   * Total number of promises that have settled (either resolved or rejected).
+   * Equivalent to `resolvedCount + rejectedCount`.
+   */
+  readonly settledCount: number;
+
+  /**
    * Starts the pool, allowing enqueued promises to begin executing.
    * No-op if the pool is already started. When `autoStart` is `true`
    * (default), this is called automatically on the first `enqueue()`.
@@ -174,6 +216,11 @@ class PromisePoolImpl implements PromisePool {
   #isStarted = false;
   #isClosed = false;
   #isResolved = false;
+
+  // Cumulative counters for settled promises. Incremented in promiseDone()
+  // and promiseRejected() respectively. Only increase, never reset.
+  #resolvedCount = 0;
+  #rejectedCount = 0;
 
   #promise: Promise<unknown[]>;
   #resolve!: (value: unknown[]) => void;
@@ -323,6 +370,34 @@ class PromisePoolImpl implements PromisePool {
     return this.#isResolved;
   }
 
+  get concurrency() {
+    return this.size;
+  }
+
+  get runningCount() {
+    return this.#running.length;
+  }
+
+  get waitingCount() {
+    return this.#enqueued.length;
+  }
+
+  get pendingCount() {
+    return this.runningCount + this.waitingCount;
+  }
+
+  get resolvedCount() {
+    return this.#resolvedCount;
+  }
+
+  get rejectedCount() {
+    return this.#rejectedCount;
+  }
+
+  get settledCount() {
+    return this.resolvedCount + this.rejectedCount;
+  }
+
   private promiseDone(p: Promise<unknown>, result: any, index: number) {
     // Guard against post-resolution callbacks: multiple in-flight promises can
     // settle near-simultaneously in the microtask queue. #isResolved is set
@@ -332,6 +407,7 @@ class PromisePoolImpl implements PromisePool {
     if (promiseIndex >= 0) {
       this.#running.splice(promiseIndex, 1);
       this.result[index] = result;
+      this.#resolvedCount++;
       // Emit 'resolve' event per-promise with the result value (before 'next')
       this.#emit('resolve', result);
       this.runNext();
@@ -356,6 +432,7 @@ class PromisePoolImpl implements PromisePool {
         isResolved: this.#isResolved,
       };
       this.#emit('error', error, context);
+      this.#rejectedCount++;
       this.result[index] = new PoolErrorImpl(
         `Promise ${index} was rejected`,
         error,
