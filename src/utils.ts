@@ -171,3 +171,49 @@ export const defer = <T>() => {
   });
   return { promise, resolve, reject };
 };
+
+/**
+ * Benchmark utility function for measuring PromisePool performance.
+ * Runs a pool with specified configuration and logs timing metrics.
+ *
+ * Useful for detecting performance regressions across versions.
+ *
+ * @param taskCount - Number of tasks to enqueue (default: 100)
+ * @param concurrency - Pool concurrency level (default: 10)
+ * @param taskDuration - Milliseconds for each task to run (default: 10)
+ * @returns Promise resolving with benchmark results object containing taskCount, concurrency, elapsed time, and throughput
+ *
+ * @example
+ * ```typescript
+ * import { benchmarkPool } from '@lalex/promises';
+ *
+ * const results = await benchmarkPool(1000, 10, 5);
+ * console.log(`Processed ${results.taskCount} tasks in ${results.elapsed}ms`);
+ * console.log(`Throughput: ${results.throughput} tasks/second`);
+ * ```
+ */
+export async function benchmarkPool(
+  taskCount: number = 100,
+  concurrency: number = 10,
+  taskDuration: number = 10,
+): Promise<{ taskCount: number; concurrency: number; elapsed: number; throughput: number }> {
+  const { pool: poolFn } = await import('./index');
+
+  const p = poolFn(concurrency);
+  const startTime = performance.now();
+
+  for (let i = 0; i < taskCount; i++) {
+    p.enqueue(() => wait(taskDuration));
+  }
+
+  await p.close();
+  const elapsed = performance.now() - startTime;
+  const throughput = taskCount / (elapsed / 1000); // tasks per second
+
+  return {
+    taskCount,
+    concurrency,
+    elapsed: parseFloat(elapsed.toFixed(2)),
+    throughput: parseFloat(throughput.toFixed(2)),
+  };
+}
