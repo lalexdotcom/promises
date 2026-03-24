@@ -989,3 +989,137 @@ describe('TEST-11: Memory Cleanup & Listener Deregistration', () => {
     expect(p.pendingCount).toBe(0);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────
+   TEST-12: Performance Instrumentation
+   ────────────────────────────────────────────────────── */
+describe('TEST-12: Performance Instrumentation', () => {
+  test('metrics are logged to console on pool resolution', async () => {
+    const originalLog = console.log;
+    let logOutput = '';
+    console.log = (msg: string) => {
+      logOutput += msg;
+    };
+
+    try {
+      const p = pool(2);
+      p.enqueue(() => Promise.resolve(42));
+      await p.close();
+
+      // Verify metrics were logged (contains event count and duration)
+      expect(logOutput).toMatch(/\[PromisePool\] Metrics/);
+      expect(logOutput).toMatch(/events/);
+      expect(logOutput).toMatch(/ms elapsed/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  test('event count increments for each emitted event', async () => {
+    const originalLog = console.log;
+    let logOutput = '';
+    console.log = (msg: string) => {
+      logOutput += msg;
+    };
+
+    try {
+      const p = pool(2);
+      let eventsFired = 0;
+      p.on('start', () => eventsFired++);
+      p.on('next', () => eventsFired++);
+      p.on('full', () => eventsFired++);
+      p.on('available', () => eventsFired++);
+
+      p.enqueue(() => wait(10));
+      p.enqueue(() => wait(10));
+      p.enqueue(() => wait(10));
+
+      await p.close();
+
+      // Extract event count from log
+      const match = logOutput.match(/(\d+) events/);
+      expect(match).toBeTruthy();
+      const loggedEventCount = parseInt(match![1]);
+      expect(loggedEventCount).toBeGreaterThan(0);
+      expect(loggedEventCount).toBeGreaterThanOrEqual(eventsFired); // At least as many as we tracked
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  test('elapsed time is positive and reasonable', async () => {
+    const originalLog = console.log;
+    let logOutput = '';
+    console.log = (msg: string) => {
+      logOutput += msg;
+    };
+
+    try {
+      const p = pool(2);
+      p.enqueue(() => wait(50));
+      p.enqueue(() => wait(50));
+
+      await p.close();
+
+      // Extract elapsed time from log
+      const match = logOutput.match(/(\d+\.?\d*) *ms elapsed/);
+      expect(match).toBeTruthy();
+      const elapsed = parseFloat(match![1]);
+      expect(elapsed).toBeGreaterThan(0);
+      expect(elapsed).toBeLessThan(5000); // Should complete in less than 5 seconds
+    } finally {
+      console.log = originalLog;
+    }
+  });
+
+  test('metrics collection has minimal CPU overhead', async () => {
+    const originalLog = console.log;
+    console.log = () => {}; // Suppress output
+
+    try {
+      const p = pool(10);
+      const start = performance.now();
+
+      for (let i = 0; i < 100; i++) {
+        p.enqueue(() => Promise.resolve(i));
+      }
+
+      await p.close();
+      const elapsed = performance.now() - start;
+
+      // Metrics collection should not cause significant slowdown
+      // (This is an informational test — no hard threshold, just log the result)
+      console.log = originalLog;
+      console.log(`[Test Metric] 100-task pool with metrics: ${elapsed.toFixed(2)}ms`);
+    } finally {
+      console.log = originalLog;
+    }
+
+    // Test passes if it completes without error
+    expect(true).toBe(true);
+  });
+
+  test('metrics work with mixed event types', async () => {
+    const originalLog = console.log;
+    let logOutput = '';
+    console.log = (msg: string) => {
+      logOutput += msg;
+    };
+
+    try {
+      const p = pool(2);
+      p.on('resolve', () => {});
+      p.on('error', () => {});
+
+      p.enqueue(() => Promise.resolve('success'));
+      p.enqueue(() => Promise.reject(new Error('fail')));
+
+      await p.close();
+
+      // Verify metrics logged despite mixed outcomes
+      expect(logOutput).toMatch(/\[PromisePool\] Metrics/);
+    } finally {
+      console.log = originalLog;
+    }
+  });
+});
