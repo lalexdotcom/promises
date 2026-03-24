@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: — Balanced Enhancements
-status: v1.1.0 RELEASED ✅
-last_updated: "2026-03-24T22:30:00.000Z"
+milestone_name: Balanced Enhancements
+status: v1.1 ARCHIVED ✅
+last_updated: "2026-03-24T10:04:42.957Z"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -11,15 +11,18 @@ progress:
   completed_plans: 5
 ---
 
-# STATE — promises v1.1.0 — RELEASED ✅
+# STATE — promises v1.1 ARCHIVED ✅
 
 ## Milestone Status
 
-**MILESTONE v1.1 COMPLETE AND RELEASE-READY ✅**
+**MILESTONE v1.1 COMPLETE — ARCHIVED 2026-03-24**
 
-✅ v1.0 shipped. ✅ v1.1 planning complete. ✅ **All 5 phases complete with 100% success.**
+✅ v1.0 shipped. ✅ v1.1 shipped. ✅ **5 phases + 3 quick tasks, 156 tests passing.**
+
+**Next:** [`/gsd-new-milestone`] pour démarrer v1.2
 
 ### Phase 9 Complete (2026-03-24)
+
 - ✅ Wave 1-2: 74 new edge case tests across 6 suites (144 total, all passing)
 - ✅ TEST-13: 18 boundary condition tests (concurrency, timeout, volume)
 - ✅ TEST-14: 12 malformed input validation tests
@@ -35,6 +38,7 @@ progress:
 - ✅ Release-ready codebase
 
 ### Phase 8 Complete (2026-03-24)
+
 - ✅ Wave 1: Explicit listener cleanup in runNext(); validation test added to TEST-03
 - ✅ Wave 2: Metrics instrumentation (#metrics object, performance.now() timing, console logging)
 - ✅ Wave 3: TEST-11 (6 memory cleanup tests), TEST-12 (5 instrumentation tests), benchmarkPool utility
@@ -44,6 +48,7 @@ progress:
 - ✅ All design decisions (D1-D4) implemented and validated
 
 ### Phase 7 Complete (2026-03-24)
+
 - ✅ Wave 1: TimeoutError enhanced with optional timeout and promise fields
 - ✅ Wave 2: Documentation with 4 timeout composition patterns
 - ✅ Wave 3: 9 comprehensive test scenarios for field presence, accuracy, and pool integration
@@ -53,6 +58,7 @@ progress:
 - ✅ Clean TypeScript build, JSDoc complete
 
 **v1.1 Complete (March 24, 2026):**
+
 - Phase 5 ✅: Event-Driven Pool (`'resolve'` and `'error'` events)
 - Phase 6 ✅: Pool Introspection (7 getters for health monitoring)
 - Phase 7 ✅: Timeout Enhancements (error context in TimeoutError)
@@ -60,6 +66,7 @@ progress:
 - Phase 9 ✅: Edge Cases & Documentation Polish (74 new tests, 5 patterns, strict mode ✓)
 
 **All 5 Focused Phases Complete:**
+
 - Phase 5 — Event-Driven Pool ✅ COMPLETE
 - Phase 6 — Pool Introspection ✅ COMPLETE
 - Phase 7 — Timeout Enhancements ✅ COMPLETE
@@ -68,11 +75,12 @@ progress:
 
 **Scope:** Balanced — Features (events, getters, timeout context), Introspection, Quality (144 tests, strict TS)  
 **Timeline:** ~4 weeks (on-time delivery)
-**Status:** READY FOR PRODUCTION RELEASE
+**Status:** v1.1 milestone complete
 
 ## Milestone Vision — ACHIEVED ✅
 
 Build upon v1.0's solid foundation with event-driven capabilities and observability:
+
 - **User value:** Per-promise event reactions ✅, pool health monitoring ✅, better error debugging ✅
 - **Engineering:** Clean event semantics ✅, introspection getters ✅, timeout context capture ✅, comprehensive test coverage ✅
 - **Zero breaking changes** (all new features are additions only) ✅
@@ -81,6 +89,7 @@ Build upon v1.0's solid foundation with event-driven capabilities and observabil
 ## Requirements Status — 100% COMPLETE ✅
 
 All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
+
 - **FR-1** `'resolve'` event — per-promise with result ✅ COMPLETE
 - **FR-2** `'error'` event — per-promise with context ✅ COMPLETE
 - **FR-3** Pool Introspection getters ✅ COMPLETE
@@ -90,6 +99,7 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 - **NFR-1 to NFR-2:** Build compatibility, release readiness ✅ COMPLETE
 
 ### v1.1 Final Metrics
+
 - **Tests:** 144 total (70 baseline + 74 Phase 9) — 100% passing
 - **Coverage:** Edge cases, error handling, error propagation, state machine integrity, advanced patterns
 - **Documentation:** 5 real-world patterns with code examples, composition strategies
@@ -98,6 +108,7 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 - **Backward compat:** 100% (zero breaking changes across all phases)
 
 ### Phase 9 Key Deliverables
+
 - **Test Scaffolds:** 6 test files (TEST-13 through TEST-18)
 - **Tests implemented:** 74 new tests (18 + 12 + 12 + 10 + 12 + 10)
 - **Patterns documented:** 5 patterns (Retry, Timeout+Fallback, Error Recovery, Monitoring, Mixed Sync/Async)
@@ -133,6 +144,7 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 ### Ready for Production
 
 All v1.1 features are production-ready:
+
 - Event-driven pool with 'resolve' and 'error' events
 - Pool introspection via 7 getters (O(1) performance)
 - Enhanced timeout control with context capture

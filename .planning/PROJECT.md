@@ -39,23 +39,27 @@ Un PromisePool qui limite la concurrence de façon fiable, avec des helpers `par
 - ✓ **NPM-02** : Bundle dual-format (CJS + ESM) avec déclarations TypeScript universelles — v1.0
 - ✓ **NPM-03** : Flag `private: true` supprimé — prêt pour `npm publish` — v1.0
 
-### Active (v1.1 — In Progress)
+### Validated (v1.1 — Complete)
 
-**Features:**
-- Backpressure support via `maxQueueSize` option — pause enqueueing when queue reaches limit, emit 'paused'/'resumed' events
-- Extended timeout control & deadline propagation — timeout API improvements for better deadline handling across chained operations
-- Queue introspection via new read-only getters — `queueSize`, `pendingCount`, `isBackpressured`
+- ✓ `'resolve'` event per-promise (avec valeur de résultat) — v1.1
+- ✓ `'error'` event per-promise (au rejet, toujours, avant `rejectOnError`) — v1.1
+- ✓ Overloads TypeScript typés pour `on()`/`once()` — Exclude<POOL_EVENT_TYPE>, `'resolve'`, `'error'` — v1.1
+- ✓ `on()`/`once()` retournent une fonction d'unsubscribe `() => void` — v1.1
+- ✓ 7 getters O(1) : `runningCount`, `waitingCount`, `pendingCount`, `settledCount`, `resolvedCount`, `rejectedCount`, `concurrency` — v1.1
+- ✓ `TimeoutError.timeout` et `TimeoutError.promise` — champs de debug — v1.1
+- ✓ Cleanup explicite des listeners à la résolution (`#listeners.clear()`) — v1.1
+- ✓ Instrumentation de métriques (`eventCount`, `performance.now()`) — v1.1
+- ✓ 74 tests de cas limites (boundary, malformed input, lifecycle rapide, error propagation, patterns avancés) — v1.1
+- ✓ TypeScript strict mode — zéro erreur `tsc --noEmit` — v1.1
+- ✓ 5 patterns avancés documentés (Backpressure, Error events, Timeout, Introspection, Pipeline) — v1.1
 
-**Performance:**
-- Microtask batching optimization in `#runNext()` — reduce scheduling overhead by batching multiple task starts
-- Memory efficiency audit — validate no unintended leaks, confirm O(concurrency) space complexity
-- Benchmark suite for tracking performance regressions across versions
+### Active (v1.2 — À planifier)
 
-**Quality & Stability:**
-- Edge case test expansion (40+ test cases total, up from 31) — malformed timeouts, rapid start/close, queue overflow
-- TypeScript strict mode compatibility validation
-- Advanced usage patterns documented in README (backpressure scenarios, timeout composition)
-- Error context enrichment — better error messages with pool state at failure point
+**Features à explorer :**
+- AsyncIterator / Stream API — DX research nécessaire
+- Retry strategies intégrées — pour l'instant les utilisateurs re-enqueuent manuellement
+- Batch result streaming — après AsyncIterator
+- Plugin / middleware system — priorité basse, API simple à préserver
 
 ### Out of Scope
 
@@ -67,16 +71,21 @@ Un PromisePool qui limite la concurrence de façon fiable, avec des helpers `par
 
 ## Context
 
-**Codebase après v1.0 :**
-- `src/pool.ts` (~264 lignes) : `PromisePoolImpl` correcte avec ALL bugs fixes appliquées
-- `src/utils.ts` (~69 lignes) : 5 utilitaires async standalone + `TimeoutError` exporté
-- `src/index.ts` : barrel export complet (PromisePool, pool factory, utils, PoolOptions/PoolError/TimeoutError)
-- `tests/index.test.ts` : 21 tests PromisePool (lifecycle, concurrence, événements, erreurs, timeouts)
-- `tests/utils.test.ts` : 10 tests Utilities (wait, timeout, unsync, slice)
+**Codebase après v1.1 :**
+- `src/pool.ts` (~520 lignes) : `PromisePoolImpl` avec événements typés, 7 getters, unsubscribe, cleanup listeners, métriques
+- `src/utils.ts` (~69 lignes) : 5 utilitaires async + `TimeoutError` (avec champs `timeout` et `promise`)
+- `src/index.ts` : barrel export complet
+- `tests/index.test.ts` : ~65 tests (lifecycle, concurrence, événements, erreurs, timeouts, type-level)
+- `tests/utils.test.ts` : 10 tests (wait, timeout, unsync, slice)
+- `tests/TEST-11` à `TEST-18` : 6 fichiers de tests spécialisés (90+ tests)
+- **Total : 156 tests, tous passing**
 
 **Stack :**
-- TypeScript 5.9, Rslib (ESM), Rstest, Biome, pnpm
+- TypeScript 5.9 strict mode, Rslib (ESM), Rstest, Biome, pnpm
 - Zéro dépendance runtime intentionnel
+
+---
+*Last updated: 2026-03-24 after v1.1 milestone*
 
 **Build :**
 - Dual-format: CJS + ESM avec déclarations TypeScript universelles
