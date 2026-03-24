@@ -1,49 +1,56 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: — Publication-Ready Library
-status: v1.0 milestone complete
-last_updated: "2026-03-24T07:03:23.518Z"
+milestone: v1.1
+milestone_name: — Balanced Enhancements
+status: v1.1 milestone active
+last_updated: "2026-03-24T12:30:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
-# STATE — promises
+# STATE — promises v1.1
 
 ## Milestone Status
 
-**MILESTONE v1.0 COMPLETED AND SHIPPED ✅**
+**MILESTONE v1.1 ACTIVE — Phase 5 Ready**
 
-All 4 phases complete, all 24 requirements satisfied, all verification/UAT passed. Package is npm-publication-ready.
+✅ v1.0 archived and shipped. v1.1 planning complete. 5 focused phases identified:
+- Phase 5 — Backpressure Control System
+- Phase 6 — Queue Introspection & Health Monitoring
+- Phase 7 — Timeout Enhancements & Error Context
+- Phase 8 — Performance Optimization & Memory Audit
+- Phase 9 — Edge Case Expansion & Documentation Polish
 
-## Project Summary
+**Scope:** Balanced — Features (backpressure, introspection, timeout) + Performance (scheduler batching, memory audit) + Quality (40+ tests, strict TS, error context)  
+**Target:** 4-6 weeks, 5 phases, maintain zero-dependency goal
 
-A zero-dependency TypeScript promise utility library (`PromisePool` + async helpers `wait`, `timeout`, `unsync`, `slice`) — now fully corrected, tested, documented, and configured for npm publication.
+## Milestone Vision
 
-**v1.0 Achievements:**
+Build upon v1.0's solid foundation with production enhancements:
+- **User value:** Backpressure control for memory-bounded workloads, better error debugging via state context
+- **Engineering:** Optimized scheduler, comprehensive edge case coverage, strict type safety
+- **Zero breaking changes** (optional features, new events, enriched errors)
 
-- All 4 known bugs fixed and validated via comprehensive test suite
-- Type system upgraded with proper inference (pool.parallel/serial overloads)
-- 31 tests passing (21 pool + 10 utils), zero failures
-- Complete documentation (README + JSDoc + inline comments)
-- npm-ready metadata, dual-format build (CJS + ESM), universal compatibility
+## Requirements Status
 
-## Phase History
+All v1.1 requirements captured in `.planning/REQUIREMENTS.md`:
+- **FR-1 to FR-4:** Functional features (backpressure, introspection, timeout, documentation)
+- **PR-1 to PR-3:** Performance improvements (batching, memory audit, timeout optimization)
+- **QR-1 to QR-4:** Quality enhancements (edge cases, TypeScript strict, error context, advanced docs)
+- **NFR-1 to NFR-2:** Non-functional (build compatibility, release readiness)
+- **4 UAT scenarios** (batch processing, health monitoring, timeout semantics, error recovery)
 
-- **Phase 1 — Correctness** ✅ Complete (2026-03-23) — BUG-01/02/03/04 fixed, TYPES-01/02/03 improved, verification passed
-- **Phase 2 — Test Coverage** ✅ Complete (2026-03-23) — 31 tests passing (21 pool + 10 utils), BUG-01/02 validated
-- **Phase 3 — Documentation** ✅ Complete (2026-03-23) — 22 JSDoc blocks, 10 inline comments, README with examples, UAT passed
-- **Phase 4 — Publication Prep** ✅ Complete (2026-03-23) — Metadata complete, private flag removed, files whitelist verified, npm publish --dry-run passed
+## Ready for Execution
 
-## Quick Tasks Completed
+**Next Action:** `/gsd-plan-phase 5`
 
-| Task | Description | Status | Completed |
-|------|-------------|--------|-----------|
-| QK-01 | Update package name to @lalex/promises and version to 1.0.0-rc.0 | ✅ Complete | 2026-03-23 |
-| QK-02 | Fix TypeScript errors in tests (enqueue() timeout parameter) | ✅ Complete | 2026-03-23 |
-| QK-03 | Update package name references in README to @lalex/promises | ✅ Complete | 2026-03-23 |
-| QK-04 | Set pool.parallel() default concurrency to 10 (add override option) | ✅ Complete | 2026-03-23 |
-| QK-05 | Make concurrency parameter optional in pool.parallel() options type | ✅ Complete | 2026-03-23 |
+All planning artifacts in place:
+- ✅ `.planning/PROJECT.md` — Updated with v1.1 goals
+- ✅ `.planning/REQUIREMENTS.md` — Complete with 14 named requirements + UAT scenarios
+- ✅ `.planning/ROADMAP.md` — Phase structure (5-6, 3-4 weeks)
+- ✅ `.planning/STATE.md` — Milestone initialized and ready
+
+**Build Status:** All v1.0 artifacts (src/, tests/, README, package.json) stable and passing.

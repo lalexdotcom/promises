@@ -39,9 +39,23 @@ Un PromisePool qui limite la concurrence de façon fiable, avec des helpers `par
 - ✓ **NPM-02** : Bundle dual-format (CJS + ESM) avec déclarations TypeScript universelles — v1.0
 - ✓ **NPM-03** : Flag `private: true` supprimé — prêt pour `npm publish` — v1.0
 
-### Active (Next Milestone)
+### Active (v1.1 — In Progress)
 
-(À définir après planification de la v1.1)
+**Features:**
+- Backpressure support via `maxQueueSize` option — pause enqueueing when queue reaches limit, emit 'paused'/'resumed' events
+- Extended timeout control & deadline propagation — timeout API improvements for better deadline handling across chained operations
+- Queue introspection via new read-only getters — `queueSize`, `pendingCount`, `isBackpressured`
+
+**Performance:**
+- Microtask batching optimization in `#runNext()` — reduce scheduling overhead by batching multiple task starts
+- Memory efficiency audit — validate no unintended leaks, confirm O(concurrency) space complexity
+- Benchmark suite for tracking performance regressions across versions
+
+**Quality & Stability:**
+- Edge case test expansion (40+ test cases total, up from 31) — malformed timeouts, rapid start/close, queue overflow
+- TypeScript strict mode compatibility validation
+- Advanced usage patterns documented in README (backpressure scenarios, timeout composition)
+- Error context enrichment — better error messages with pool state at failure point
 
 ### Out of Scope
 
@@ -105,7 +119,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-03-24 after v1.0 milestone completion*
-
----
-*Last updated: 2026-03-23 after initialization*
+*Last updated: 2026-03-24 after v1.0 milestone completion and v1.1 milestone planning*
