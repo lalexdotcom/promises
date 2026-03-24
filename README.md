@@ -57,8 +57,8 @@ Returns a `PromisePool` with the following interface:
 | `start()` | `void` | Starts the pool (called automatically when `autoStart` is `true`) |
 | `enqueue(fn, timeout?)` | `void` | Enqueues a promise factory for execution |
 | `close()` | `Promise<unknown[]>` | Seals the queue and returns the results promise |
-| `on(event, cb)` | `void` | Registers a persistent event listener |
-| `once(event, cb)` | `void` | Registers a one-time event listener |
+| `on(event, cb)` | `() => void` | Registers a persistent event listener; returns an unsubscribe function |
+| `once(event, cb)` | `() => void` | Registers a one-time event listener; returns an unsubscribe function |
 
 ### `pool.parallel(commands, options?)`
 
@@ -132,6 +132,7 @@ Returns: async version of `fct` that yields between chunks.
 ### Events
 
 Use `pool.on(event, callback)` or `pool.once(event, callback)` to listen for lifecycle events.
+Both methods return an **unsubscribe function** (`() => void`) — call it to remove the listener.
 
 | Event | Fires when |
 |---|---|
@@ -141,6 +142,13 @@ Use `pool.on(event, callback)` or `pool.once(event, callback)` to listen for lif
 | `available` | A slot opens (one promise finished, capacity available) |
 | `close` | `close()` is called |
 | `resolve` | Pool resolves with all results |
+
+```js
+// Remove a listener when it's no longer needed
+const unsub = jobPool.on('next', () => console.log('slot freed'));
+// ...later:
+unsub(); // listener is removed, no further invocations
+```
 
 ## Examples
 
