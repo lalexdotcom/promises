@@ -41,10 +41,8 @@ Creates a new `PromisePool`.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | concurrency | number | 10 | Max promises running simultaneously |
-| options.name | string | `'pool'` | Used in error messages and verbose logs |
 | options.rejectOnError | boolean | `false` | Reject pool immediately on first failure |
 | options.autoStart | boolean | `true` | Auto-start on first `enqueue()` |
-| options.verbose | boolean \| function | `false` | Log to console or a custom logger |
 
 Returns a `PromisePool` with the following interface:
 
@@ -142,6 +140,7 @@ Use `pool.on(event, callback)` or `pool.once(event, callback)` to listen for lif
 | `full` | Pool reaches maximum concurrency |
 | `available` | A slot opens (one promise finished, capacity available) |
 | `close` | `close()` is called |
+| `resolve` | Pool resolves with all results |
 
 ## Examples
 
@@ -155,7 +154,7 @@ import { pool } from '@lalex/promises';
 const urls = [/* ... */];
 let completed = 0;
 
-const jobPool = pool(5, { name: 'scraper' });
+const jobPool = pool(5);
 
 jobPool.on('next', () => {
   process.stdout.write(`\rRunning: ${jobPool.running} | Done: ${completed}`);
