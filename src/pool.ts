@@ -9,8 +9,7 @@ type QueuedPromise = {
 
 const DEFAULT_CONCURRENCY = 10;
 const DEFAULT_PARALLEL_CONCURRENCY = 10;
-const DEFAULT_NAME = 'pool';
-type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available';
+type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available' | 'resolve';
 
 /**
  * A concurrency-bounded promise pool. Enqueue async work, control how many
@@ -80,7 +79,7 @@ export interface PromisePool {
   /**
    * Registers a persistent listener for a pool lifecycle event.
    *
-   * @param event - `'start'` | `'full'` | `'next'` | `'close'` | `'available'`
+   * @param event - `'start'` | `'full'` | `'next'` | `'close'` | `'available'` | `'resolve'`
    * @param callback - Invoked each time the event fires.
    */
   on(event: POOL_EVENT_TYPE, callback: () => void): void;
@@ -89,18 +88,11 @@ export interface PromisePool {
    * Registers a one-time listener for a pool lifecycle event.
    * The listener is automatically removed after its first invocation.
    *
-   * @param event - `'start'` | `'full'` | `'next'` | `'close'` | `'available'`
+   * @param event - `'start'` | `'full'` | `'next'` | `'close'` | `'available'` | `'resolve'`
    * @param callback - Invoked once, then deregistered.
    */
   once(event: POOL_EVENT_TYPE, callback: () => void): void;
 }
-
-const VERBOSE_LEVELS = {
-  debug: console.debug,
-  info: console.info,
-  warn: console.warn,
-  error: console.error,
-};
 
 export type PoolOptions = {
   /**
@@ -108,11 +100,6 @@ export type PoolOptions = {
    * @default 10
    */
   concurrency: number;
-  /**
-   * Pool name used in error messages and verbose log output.
-   * @default 'pool'
-   */
-  name?: string;
   /**
    * When `true`, rejects the pool promise immediately on the first failure.
    * When `false` (default), failures are wrapped as {@link PoolError} entries
@@ -126,17 +113,6 @@ export type PoolOptions = {
    * @default true
    */
   autoStart?: boolean;
-  /**
-   * Enable verbose logging. Pass `true` to log to the console, or a function
-   * to receive structured entries: `(level: 'debug'|'info'|'warn'|'error', ...args) => void`.
-   * @default false
-   */
-  verbose?:
-    | boolean
-    | ((
-        level: keyof typeof VERBOSE_LEVELS,
-        ...debug: Parameters<typeof console.log>
-      ) => any);
 };
 
 /**
@@ -160,7 +136,6 @@ class PoolErrorImpl extends Error implements PoolError {
 class PromisePoolImpl implements PromisePool {
   size: number;
 
-  private name: string;
   private options?: PoolOptions;
 
   private currentIndex = 0;
@@ -183,7 +158,6 @@ class PromisePoolImpl implements PromisePool {
 
   #emit(type: POOL_EVENT_TYPE) {
     if (this.#listeners[type]) {
-      this.verbose('debug', `emit ${type}`);
       for (const [cb, once] of this.#listeners[type]!) {
         cb();
         // ES2015+ Map allows safe deletion of entries during for...of iteration —
@@ -203,7 +177,6 @@ class PromisePoolImpl implements PromisePool {
 
   constructor(options?: PoolOptions) {
     this.size = options?.concurrency || DEFAULT_CONCURRENCY;
-    this.name = options?.name || DEFAULT_NAME;
     this.options = options;
     this.#promise = new Promise((res, rej) => {
       this.#resolve = res;
@@ -214,7 +187,6 @@ class PromisePoolImpl implements PromisePool {
   start() {
     if (!this.#isStarted) {
       this.#emit('start');
-      this.verbose('info', 'start pool');
       // Defer #isStarted to the next microtask so that enqueue() calls in the
       // same synchronous frame still see #isStarted === false and enqueue normally.
       // runNext() fires once this microtask runs, picking up everything enqueued.
@@ -232,10 +204,9 @@ class PromisePoolImpl implements PromisePool {
     timeout: number = Number.NaN,
   ) {
     if (this.#isClosed)
-      throw new Error(`[${this.name}] PromisePool already closed`);
+      throw new Error('PromisePool already closed');
     if (this.#isResolved)
-      throw new Error(`[${this.name}] PromisePool already performed`);
-    this.verbose('info', `enqueue promise@${this.currentIndex}`);
+      throw new Error('PromisePool already performed');
     this.#enqueued.push({
       index: this.currentIndex++,
       generator: promiseGenerator,
@@ -245,14 +216,6 @@ class PromisePoolImpl implements PromisePool {
       this.start();
     } else if (this.#isStarted) {
       this.runNext();
-    }
-  }
-  private verbose(level: keyof typeof VERBOSE_LEVELS, ...args: any[]) {
-    if (!this.options?.verbose) return;
-    if (typeof this.options?.verbose === 'function') {
-      this.options.verbose(level, ...args);
-    } else if (this.options?.verbose) {
-      VERBOSE_LEVELS[level](...args);
     }
   }
 
@@ -265,7 +228,6 @@ class PromisePoolImpl implements PromisePool {
         // after a batch of promises completes.
         while (this.#running.length < this.size && !!this.#enqueued.length) {
           const nextQueuedPromise = this.#enqueued.shift();
-          this.verbose('info', `run promise ${nextQueuedPromise?.index}`);
           if (nextQueuedPromise) {
             const { generator, index, timeout } = nextQueuedPromise;
             this.#emit('next');
@@ -295,11 +257,9 @@ class PromisePoolImpl implements PromisePool {
         // prevents premature resolution when the queue is momentarily empty between
         // enqueue() calls.
         if (this.#isClosed) {
-          this.verbose('info', 'no more queue: done');
           this.#isResolved = true;
+          this.#emit('resolve');
           this.#resolve(this.result);
-        } else {
-          this.verbose('info', 'waiting for new promises or close');
         }
       } else {
         // 'available' signals that exactly one slot just freed up. Checked *after*
@@ -308,7 +268,6 @@ class PromisePoolImpl implements PromisePool {
         if (this.#running.length === this.size - 1) {
           this.#emit('available');
         }
-        this.verbose('info', `${this.#running.length} promises still running`);
       }
     }
   }
@@ -346,10 +305,7 @@ class PromisePoolImpl implements PromisePool {
     if (promiseIndex >= 0) {
       this.#running.splice(promiseIndex, 1);
       this.result[index] = result;
-      this.verbose('info', `promise@${index} done`);
       this.runNext();
-    } else {
-      this.verbose('warn', 'unknown promise resolved');
     }
   }
 
@@ -369,19 +325,12 @@ class PromisePoolImpl implements PromisePool {
         this.#isResolved = true;
         this.#reject(error);
       } else {
-        console.error(
-          error instanceof Error ? error.message : JSON.stringify(error),
-        );
         this.runNext();
       }
-      this.verbose('error', `promise@${index} error`, error);
-    } else {
-      this.verbose('warn', 'unknown promise error');
     }
   }
 
   close() {
-    this.verbose('info', 'close pool');
     this.#isClosed = true;
     this.start();
     return this.#promise;
