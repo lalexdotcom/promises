@@ -53,17 +53,9 @@ All v1.1 requirements captured and updated in `.planning/REQUIREMENTS.md`:
 - **QR-1 to QR-3:** Quality enhancements (tests, TypeScript, docs)
 - **NFR-1 to NFR-2:** Build compatibility, release readiness
 
-## Phase 5 Context Complete
+## Phase 5 Planning Complete
 
-**CONTEXT.md created:** `.planning/05-backpressure-control/05-CONTEXT.md`
+**CONTEXT.md:** `.planning/05-backpressure-control/05-CONTEXT.md` — Design decisions locked  
+**PLAN.md:** `.planning/05-backpressure-control/05-PLAN.md` — 12 tasks, 3-wave execution strategy
 
-Design decisions locked:
-- ✅ D1: 'resolve' event per-promise with result
-- ✅ D2: 'error' event per-promise always, with context
-- ✅ D3: Reject maxQueueSize (concurrency sufficient)
-- ✅ D4: POOL_EVENT_TYPE extended
-- ✅ D5: Error context via event listener, not PoolError type
-
-## Ready for Execution
-
-**Next Action:** `/gsd-plan-phase 5`
+**Ready for Execution:** `/gsd-execute-phase 5`
