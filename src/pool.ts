@@ -448,6 +448,10 @@ class PromisePoolImpl implements PromisePool {
 
   close() {
     this.#isClosed = true;
+    // Clear all listeners per D2: explicit resource cleanup
+    for (const lifeCycleListeners of Object.values(this.#listeners)) {
+      lifeCycleListeners?.clear();
+    }
     this.start();
     return this.#promise;
   }
