@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { pool, timeout, TimeoutError, wait } from '../src/index';
+import { pool, TimeoutError, timeout, wait } from '../src/index';
 
 describe('TEST-18: Advanced Patterns (Integration)', () => {
   /* ────────────────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ describe('TEST-18: Advanced Patterns (Integration)', () => {
           } catch (error) {
             lastError = error;
             if (attempt < MAX_RETRIES - 1) {
-              await wait(Math.pow(2, attempt) * 10); // Exponential backoff
+              await wait(2 ** attempt * 10); // Exponential backoff
             }
           }
         }
@@ -79,7 +79,7 @@ describe('TEST-18: Advanced Patterns (Integration)', () => {
       p.enqueue(async () => {
         return timeout(
           wait(100).then(() => 'slow-result'),
-          50
+          50,
         ).catch(() => cachedValue);
       });
 
@@ -94,7 +94,7 @@ describe('TEST-18: Advanced Patterns (Integration)', () => {
       p.enqueue(async () => {
         return timeout(
           wait(20).then(() => 'fast-result'),
-          100
+          100,
         ).catch(() => fallbackValue);
       });
 
@@ -107,8 +107,10 @@ describe('TEST-18: Advanced Patterns (Integration)', () => {
 
       p.enqueue(() =>
         // Task-level timeout with fallback
-        timeout(wait(50).then(() => 'success'), 100)
-          .catch(() => 'timeout-fallback')
+        timeout(
+          wait(50).then(() => 'success'),
+          100,
+        ).catch(() => 'timeout-fallback'),
       );
 
       const result = await p.close();
@@ -144,7 +146,9 @@ describe('TEST-18: Advanced Patterns (Integration)', () => {
       // Initially high pending count
       expect(progressSnapshots[0]).toBeGreaterThan(0);
       // Eventually reaches 0 (or near 0 at last sample)
-      expect(progressSnapshots[progressSnapshots.length - 1]).toBeLessThanOrEqual(2);
+      expect(
+        progressSnapshots[progressSnapshots.length - 1],
+      ).toBeLessThanOrEqual(2);
     });
 
     test('task completion ratio increases monotonically', async () => {

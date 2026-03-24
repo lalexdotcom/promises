@@ -30,7 +30,7 @@ describe('TEST-14: Malformed Input Handling', () => {
       }
     });
 
-    test('object concurrency as first arg is invalid but construction doesn\'t throw', () => {
+    test("object concurrency as first arg is invalid but construction doesn't throw", () => {
       // { value: 10 } is truthy, so size = { value: 10 }
       const p = pool({ value: 10 } as any);
       expect(p).toBeDefined();
@@ -62,7 +62,7 @@ describe('TEST-14: Malformed Input Handling', () => {
       expect(p.waitingCount).toBe(1);
     });
 
-    test('enqueue(42) doesn\'t throw immediately, will error at runtime', () => {
+    test("enqueue(42) doesn't throw immediately, will error at runtime", () => {
       const p = pool(1);
       // enqueue doesn't validate synchronously
       p.enqueue(42 as any);
@@ -99,7 +99,7 @@ describe('TEST-14: Malformed Input Handling', () => {
       }
     });
 
-    test('on(null, callback) doesn\'t throw, null becomes event key', () => {
+    test("on(null, callback) doesn't throw, null becomes event key", () => {
       const p = pool(1);
       // on() doesn't validate event type strictly
       p.on(null as any, () => {});
@@ -107,7 +107,7 @@ describe('TEST-14: Malformed Input Handling', () => {
       expect(true).toBe(true);
     });
 
-    test('on(resolve, null) registers null listener (won\'t fire)', () => {
+    test("on(resolve, null) registers null listener (won't fire)", () => {
       const p = pool(1);
       // on() stores the callback without validating it's a function
       p.on('resolve', null as any);

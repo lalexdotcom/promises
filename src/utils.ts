@@ -196,7 +196,12 @@ export async function benchmarkPool(
   taskCount: number = 100,
   concurrency: number = 10,
   taskDuration: number = 10,
-): Promise<{ taskCount: number; concurrency: number; elapsed: number; throughput: number }> {
+): Promise<{
+  taskCount: number;
+  concurrency: number;
+  elapsed: number;
+  throughput: number;
+}> {
   const { pool: poolFn } = await import('./index');
 
   const p = poolFn(concurrency);

@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { pool, timeout, TimeoutError, wait } from '../src/index';
+import { pool, TimeoutError, timeout, wait } from '../src/index';
 
 describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
   /* ────────────────────────────────────────────────────────────────────────
