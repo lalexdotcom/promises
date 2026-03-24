@@ -12,24 +12,6 @@ const DEFAULT_PARALLEL_CONCURRENCY = 10;
 type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available' | 'resolve' | 'error';
 
 /**
- * Context object provided with 'error' event listener, containing pool state snapshot at rejection time.
- */
-export interface PoolEventContext {
-  /** Number of promises currently executing (started but not settled). */
-  runningCount: number;
-  /** Number of promises enqueued but not yet started. */
-  waitingCount: number;
-  /** Total promises not yet settled (runningCount + waitingCount). */
-  pendingCount: number;
-  /** `true` if pool has started. */
-  isStarted: boolean;
-  /** `true` if pool has been closed. */
-  isClosed: boolean;
-  /** `true` if pool has fully resolved. */
-  isResolved: boolean;
-}
-
-/**
  * A concurrency-bounded promise pool. Enqueue async work, control how many
  * run simultaneously, and await a single promise for all results.
  *

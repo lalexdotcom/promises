@@ -879,13 +879,17 @@ describe('TEST-11: Memory Cleanup & Listener Deregistration', () => {
     const p = pool(2, { autoStart: false });
 
     // Register listeners on all event types
-    const events = ['start', 'full', 'next', 'available', 'resolve', 'error', 'close'] as const;
+    const lifecycleEvents = ['start', 'full', 'next', 'available', 'close'] as const;
     const listenerCounts: Record<string, number> = {};
 
-    for (const event of events) {
+    for (const event of lifecycleEvents) {
       p.on(event, () => {});
       listenerCounts[event] = 1;
     }
+    p.on('resolve', () => {});
+    p.on('error', () => {});
+    listenerCounts['resolve'] = 1;
+    listenerCounts['error'] = 1;
 
     p.enqueue(() => Promise.resolve(1));
     p.enqueue(() => Promise.resolve(2));
@@ -1117,7 +1121,7 @@ describe('TEST-12: Performance Instrumentation', () => {
    ──────────────────────────────────────────────────── */
 describe('on/once type overloads (compile-time)', () => {
   test('correct signatures compile without errors', () => {
-    const p = pool({ concurrency: 1 });
+    const p = pool(1);
     // Simple events — no args
     p.on('start', () => {});
     p.on('full', () => {});
@@ -1135,7 +1139,7 @@ describe('on/once type overloads (compile-time)', () => {
   });
 
   test('rejects wrong arity on simple events', () => {
-    const p = pool({ concurrency: 1 });
+    const p = pool(1);
     // @ts-expect-error — 'start' callback takes no args
     p.on('start', (_x: number) => {});
     // @ts-expect-error — 'full' callback takes no args
@@ -1143,13 +1147,13 @@ describe('on/once type overloads (compile-time)', () => {
   });
 
   test('rejects wrong arity on resolve event', () => {
-    const p = pool({ concurrency: 1 });
+    const p = pool(1);
     // @ts-expect-error — 'resolve' callback takes exactly one arg
     p.on('resolve', (_a: unknown, _b: unknown) => {});
   });
 
   test('rejects extra args on error event', () => {
-    const p = pool({ concurrency: 1 });
+    const p = pool(1);
     // @ts-expect-error — 'error' callback takes exactly one arg (context removed from signature)
     p.on('error', (_err: unknown, _ctx: unknown) => {});
   });
