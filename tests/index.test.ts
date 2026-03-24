@@ -177,6 +177,128 @@ describe('TEST-03: Event system', () => {
 });
 
 /* ────────────────────────────────────────────────────────────────────────
+   TEST-03b: Unsubscribe (on / once return value)
+   ────────────────────────────────────────────────── */
+describe('TEST-03b: unsubscribe (on / once return value)', () => {
+  test('on() — unsubscribe stops future invocations', async () => {
+    const p = pool(3);
+    let count = 0;
+    const unsub = p.on('next', () => count++);
+
+    p.enqueue(() => Promise.resolve(1));
+    await Promise.resolve();
+    await Promise.resolve();
+    // count should be 1 after the first 'next' fires
+    expect(count).toBe(1);
+
+    unsub(); // remove the listener
+    p.enqueue(() => Promise.resolve(2));
+    await p.close();
+
+    // count must not have increased after unsubscribe
+    expect(count).toBe(1);
+  });
+
+  test('on() — unsubscribing one listener does not affect others on the same event', async () => {
+    const p = pool(3);
+    let count1 = 0;
+    let count2 = 0;
+    const unsub1 = p.on('next', () => count1++);
+    p.on('next', () => count2++);
+
+    p.enqueue(() => Promise.resolve(1));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(count1).toBe(1);
+    expect(count2).toBe(1);
+
+    unsub1(); // only remove first listener
+    p.enqueue(() => Promise.resolve(2));
+    await p.close();
+
+    expect(count1).toBe(1); // first listener stopped
+    expect(count2).toBeGreaterThan(1); // second listener still active
+  });
+
+  test('once() — unsubscribe prevents the listener from ever firing', async () => {
+    const p = pool(3);
+    let count = 0;
+    const unsub = p.once('next', () => count++);
+
+    unsub(); // unsubscribe before any event fires
+    p.enqueue(() => Promise.resolve(1));
+    await p.close();
+
+    expect(count).toBe(0); // listener never fired
+  });
+
+  test('once() — unsubscribe after already fired is a no-op', async () => {
+    const p = pool(3);
+    let count = 0;
+    const unsub = p.once('next', () => count++);
+
+    p.enqueue(() => Promise.resolve(1));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(count).toBe(1); // fired once
+
+    expect(() => unsub()).not.toThrow(); // calling after fire should not throw
+    p.enqueue(() => Promise.resolve(2));
+    await p.close();
+
+    expect(count).toBe(1); // still only 1 — once already removed it
+  });
+
+  test('on() — returns a function (type check)', () => {
+    const p = pool(2);
+    const unsub = p.on('start', () => {});
+    expect(typeof unsub).toBe('function');
+  });
+
+  test('once() — returns a function (type check)', () => {
+    const p = pool(2);
+    const unsub = p.once('start', () => {});
+    expect(typeof unsub).toBe('function');
+  });
+
+  test('on() — unsubscribe works for resolve event', async () => {
+    const p = pool(2);
+    let count = 0;
+    const unsub = p.on('resolve', () => count++);
+
+    p.enqueue(() => Promise.resolve(1));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(count).toBe(1);
+
+    unsub();
+    p.enqueue(() => Promise.resolve(2));
+    await p.close();
+    expect(count).toBe(1); // no further increments after unsub
+  });
+
+  test('on() — unsubscribe works for error event', async () => {
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2);
+    let count = 0;
+    const unsub = p.on('error', () => count++);
+
+    p.enqueue(() => Promise.reject(new Error('first')));
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(count).toBe(1);
+
+    unsub();
+    p.enqueue(() => Promise.reject(new Error('second')));
+    await p.close();
+    console.error = orig;
+    expect(count).toBe(1); // second error does not increment
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
    TEST-04: Error handling
    ────────────────────────────────────────────────────── */
 describe('TEST-04: Error handling', () => {

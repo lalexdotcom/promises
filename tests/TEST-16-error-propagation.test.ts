@@ -252,7 +252,7 @@ describe('TEST-16: Error Propagation & Event Ordering', () => {
       await p.close();
 
       expect(count).toBeGreaterThan(0);
-      // Note: There's no off() method to unregister, only on() and once()
+      // Listeners can be removed via the unsubscribe function returned by on() / once()
     });
   });
 });
