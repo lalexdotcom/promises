@@ -148,3 +148,4 @@ All v1.1 features are production-ready:
 |---|-------------|------|--------|-----------|
 | 260324-ctm | Improve on() and once() event listener typing with TypeScript overloads | 2026-03-24 | 0d2ab69 | [260324-ctm-improve-on-and-once-event-listener-typin](./quick/260324-ctm-improve-on-and-once-event-listener-typin/) |
 | 260324-d4g | Refine event listener overloads: use Exclude&lt;POOL_EVENT_TYPE&gt; for generic events and remove context from error event | 2026-03-24 | d6dcd22 | [260324-d4g-refine-event-listener-overloads-use-excl](./quick/260324-d4g-refine-event-listener-overloads-use-excl/) |
+| 260324-dmw | on() and once() return unsubscribe function, keep generic signature | 2026-03-24 | 99d5524 | [260324-dmw-on-and-once-return-unsubscribe-function-](./quick/260324-dmw-on-and-once-return-unsubscribe-function-/) |
