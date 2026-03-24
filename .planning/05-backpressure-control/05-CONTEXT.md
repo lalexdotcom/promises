@@ -70,7 +70,7 @@ Implement two new event types (`'resolve'` and `'error'`) to enable event-driven
 
 ### D3: Rejection of maxQueueSize Option
 
-**Decision:** Do **NOT** implement `maxQueueSize` option. Reject it from v1.1 spec.
+**Decision:** Do **NOT** implement `maxQueueSize` option. Reject it from v1.2 spec.
 
 **Rationale:**
 - User clarification (March 24, 2026): "concurrency already handles limiting, maxQueueSize is redundant"

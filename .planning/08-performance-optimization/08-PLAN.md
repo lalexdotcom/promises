@@ -725,7 +725,7 @@ After completion, create `.planning/08-performance-optimization/08-01-SUMMARY.md
 - Metrics sample output (console log example)
 - Next phase: 09-edge-case-expansion
 
-Post-Phase 8, all production requirements for v1.1 are validated:
+Post-Phase 8, all production requirements for v1.2 are validated:
 - ✅ Concurrency control (v1.0)
 - ✅ Event system (v1.0)
 - ✅ Pool introspection (Phase 6)

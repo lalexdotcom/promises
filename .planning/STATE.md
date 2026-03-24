@@ -1,8 +1,8 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
+milestone: v1.2
 milestone_name: Balanced Enhancements
-status: v1.1 ARCHIVED ✅
+status: v1.2 ARCHIVED ✅
 last_updated: "2026-03-24T10:04:42.957Z"
 progress:
   total_phases: 5
@@ -11,15 +11,15 @@ progress:
   completed_plans: 5
 ---
 
-# STATE — promises v1.1 ARCHIVED ✅
+# STATE — promises v1.2 ARCHIVED ✅
 
 ## Milestone Status
 
-**MILESTONE v1.1 COMPLETE — ARCHIVED 2026-03-24**
+**MILESTONE v1.2 COMPLETE — ARCHIVED 2026-03-24**
 
-✅ v1.0 shipped. ✅ v1.1 shipped. ✅ **5 phases + 3 quick tasks, 156 tests passing.**
+✅ v1.0 shipped. ✅ v1.2 shipped. ✅ **5 phases + 3 quick tasks, 156 tests passing.**
 
-**Next:** [`/gsd-new-milestone`] pour démarrer v1.2
+**Next:** [`/gsd-new-milestone`] pour démarrer v1.3
 
 ### Phase 9 Complete (2026-03-24)
 
@@ -57,7 +57,7 @@ progress:
 - ✅ Context capture synchronous in setTimeout callback
 - ✅ Clean TypeScript build, JSDoc complete
 
-**v1.1 Complete (March 24, 2026):**
+**v1.2 Complete (March 24, 2026):**
 
 - Phase 5 ✅: Event-Driven Pool (`'resolve'` and `'error'` events)
 - Phase 6 ✅: Pool Introspection (7 getters for health monitoring)
@@ -75,7 +75,7 @@ progress:
 
 **Scope:** Balanced — Features (events, getters, timeout context), Introspection, Quality (144 tests, strict TS)  
 **Timeline:** ~4 weeks (on-time delivery)
-**Status:** v1.1 milestone complete
+**Status:** v1.2 milestone complete
 
 ## Milestone Vision — ACHIEVED ✅
 
@@ -88,7 +88,7 @@ Build upon v1.0's solid foundation with event-driven capabilities and observabil
 
 ## Requirements Status — 100% COMPLETE ✅
 
-All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
+All v1.2 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 
 - **FR-1** `'resolve'` event — per-promise with result ✅ COMPLETE
 - **FR-2** `'error'` event — per-promise with context ✅ COMPLETE
@@ -98,7 +98,7 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 - **QR-1 to QR-3:** Quality enhancements (tests, TypeScript, docs) ✅ COMPLETE
 - **NFR-1 to NFR-2:** Build compatibility, release readiness ✅ COMPLETE
 
-### v1.1 Final Metrics
+### v1.2 Final Metrics
 
 - **Tests:** 144 total (70 baseline + 74 Phase 9) — 100% passing
 - **Coverage:** Edge cases, error handling, error propagation, state machine integrity, advanced patterns
@@ -128,14 +128,14 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 - ✅ Code quality high (strict TS, comprehensive tests)
 - ✅ Ready for npm publish
 
-**Next steps:** ~~Tag v1.1.0~~ ✅ DONE (tag: v1.1.0), publish to npm, begin v1.2 planning.
+**Next steps:** ~~Tag v1.2.0~~ ✅ DONE (tag: v1.2.0), publish to npm, begin v1.2 planning.
 
-## Release Summary — v1.1.0 ✅
+## Release Summary — v1.2.0 ✅
 
 ### Release Completed (2026-03-24 22:15 UTC)
 
 - ✅ **Version bumped:** 1.1.0-rc.1 → 1.1.0 in package.json
-- ✅ **Git tag created:** `git tag v1.1.0` (commit: f6c8593)
+- ✅ **Git tag created:** `git tag v1.2.0` (commit: f6c8593)
 - ✅ **TypeScript validation:** `npx tsc --noEmit` — zero errors
 - ✅ **Test suite:** 144 tests passing (`pnpm run test`)
 - ✅ **Build:** Clean (esm + cjs bundles)
@@ -143,7 +143,7 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 
 ### Ready for Production
 
-All v1.1 features are production-ready:
+All v1.2 features are production-ready:
 
 - Event-driven pool with 'resolve' and 'error' events
 - Pool introspection via 7 getters (O(1) performance)
@@ -152,7 +152,7 @@ All v1.1 features are production-ready:
 - Comprehensive edge case coverage (144 tests)
 - 100% backward compatible with v1.0
 
-**Status:** ✅ v1.1.0 officially released
+**Status:** ✅ v1.2.0 officially released
 
 ### Quick Tasks Completed
 

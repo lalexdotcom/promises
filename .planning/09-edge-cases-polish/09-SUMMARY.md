@@ -32,7 +32,7 @@ dependency_graph:
     - 5 advanced patterns documented
     - TypeScript strict mode validation
   affects:
-    - v1.1 release readiness
+    - v1.2 release readiness
     - Production stability
     - User adoption confidence
 ---
@@ -41,7 +41,7 @@ dependency_graph:
 
 ## Overview
 
-**Phase 9** is the final phase of **v1.1**, expanding the test suite from 70 to **144 tests** and finalizing customer-facing documentation with real-world patterns. All design decisions (D1-D5) locked and fully implemented.
+**Phase 9** is the final phase of **v1.2**, expanding the test suite from 70 to **144 tests** and finalizing customer-facing documentation with real-world patterns. All design decisions (D1-D5) locked and fully implemented.
 
 ## Implementation Completeness
 
@@ -173,7 +173,7 @@ Each pattern includes:
 
 ### No Breaking Changes
 
-✅ All v1.1 features backward compatible. No API changes. All new tests pass against existing implementation.
+✅ All v1.2 features backward compatible. No API changes. All new tests pass against existing implementation.
 
 ## Release Readiness Assessment
 
@@ -204,9 +204,9 @@ Each pattern includes:
 | `da6a4ed` | docs(09-edge-cases): add 5 advanced patterns (~350 lines) | README.md (+327 lines) |
 | (this summary) | docs(09-edge-cases): complete Phase 9 with 144 passing tests | .planning/09-edge-cases-polish/09-SUMMARY.md |
 
-## What's Next: v1.1 Complete
+## What's Next: v1.2 Complete
 
-With Phase 9 complete, **v1.1 is feature-complete and ready for release:**
+With Phase 9 complete, **v1.2 is feature-complete and ready for release:**
 
 - ✅ Phase 5: Event-Driven Pool (resolve/error events)
 - ✅ Phase 6: Pool Introspection (7 getters for health monitoring)
@@ -215,12 +215,12 @@ With Phase 9 complete, **v1.1 is feature-complete and ready for release:**
 - ✅ Phase 9: Edge Cases & Documentation (74 tests, 5 patterns, strict mode ✓)
 
 **Post-Phase 9 actions:**
-1. Run `gsd-milestone-summary` to generate v1.1 release notes
+1. Run `gsd-milestone-summary` to generate v1.2 release notes
 2. Run `gsd-complete-milestone` to archive Phase 9 and prepare v1.2 planning
-3. Tag v1.1.0 in git: `git tag v1.1.0 && git push origin v1.1.0`
+3. Tag v1.2.0 in git: `git tag v1.2.0 && git push origin v1.2.0`
 4. Publish to npm: `npm publish`
 
-**v1.1 Metrics:**
+**v1.2 Metrics:**
 - 144 total tests (70 baseline + 74 Phase 9)
 - 5 advanced patterns documented
 - 100% TypeScript strict mode compliance

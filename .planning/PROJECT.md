@@ -39,19 +39,19 @@ Un PromisePool qui limite la concurrence de façon fiable, avec des helpers `par
 - ✓ **NPM-02** : Bundle dual-format (CJS + ESM) avec déclarations TypeScript universelles — v1.0
 - ✓ **NPM-03** : Flag `private: true` supprimé — prêt pour `npm publish` — v1.0
 
-### Validated (v1.1 — Complete)
+### Validated (v1.2 — Complete)
 
-- ✓ `'resolve'` event per-promise (avec valeur de résultat) — v1.1
-- ✓ `'error'` event per-promise (au rejet, toujours, avant `rejectOnError`) — v1.1
-- ✓ Overloads TypeScript typés pour `on()`/`once()` — Exclude<POOL_EVENT_TYPE>, `'resolve'`, `'error'` — v1.1
-- ✓ `on()`/`once()` retournent une fonction d'unsubscribe `() => void` — v1.1
-- ✓ 7 getters O(1) : `runningCount`, `waitingCount`, `pendingCount`, `settledCount`, `resolvedCount`, `rejectedCount`, `concurrency` — v1.1
-- ✓ `TimeoutError.timeout` et `TimeoutError.promise` — champs de debug — v1.1
-- ✓ Cleanup explicite des listeners à la résolution (`#listeners.clear()`) — v1.1
-- ✓ Instrumentation de métriques (`eventCount`, `performance.now()`) — v1.1
-- ✓ 74 tests de cas limites (boundary, malformed input, lifecycle rapide, error propagation, patterns avancés) — v1.1
-- ✓ TypeScript strict mode — zéro erreur `tsc --noEmit` — v1.1
-- ✓ 5 patterns avancés documentés (Backpressure, Error events, Timeout, Introspection, Pipeline) — v1.1
+- ✓ `'resolve'` event per-promise (avec valeur de résultat) — v1.2
+- ✓ `'error'` event per-promise (au rejet, toujours, avant `rejectOnError`) — v1.2
+- ✓ Overloads TypeScript typés pour `on()`/`once()` — Exclude<POOL_EVENT_TYPE>, `'resolve'`, `'error'` — v1.2
+- ✓ `on()`/`once()` retournent une fonction d'unsubscribe `() => void` — v1.2
+- ✓ 7 getters O(1) : `runningCount`, `waitingCount`, `pendingCount`, `settledCount`, `resolvedCount`, `rejectedCount`, `concurrency` — v1.2
+- ✓ `TimeoutError.timeout` et `TimeoutError.promise` — champs de debug — v1.2
+- ✓ Cleanup explicite des listeners à la résolution (`#listeners.clear()`) — v1.2
+- ✓ Instrumentation de métriques (`eventCount`, `performance.now()`) — v1.2
+- ✓ 74 tests de cas limites (boundary, malformed input, lifecycle rapide, error propagation, patterns avancés) — v1.2
+- ✓ TypeScript strict mode — zéro erreur `tsc --noEmit` — v1.2
+- ✓ 5 patterns avancés documentés (Backpressure, Error events, Timeout, Introspection, Pipeline) — v1.2
 
 ### Active (v1.2 — À planifier)
 
@@ -71,7 +71,7 @@ Un PromisePool qui limite la concurrence de façon fiable, avec des helpers `par
 
 ## Context
 
-**Codebase après v1.1 :**
+**Codebase après v1.2 :**
 - `src/pool.ts` (~520 lignes) : `PromisePoolImpl` avec événements typés, 7 getters, unsubscribe, cleanup listeners, métriques
 - `src/utils.ts` (~69 lignes) : 5 utilitaires async + `TimeoutError` (avec champs `timeout` et `promise`)
 - `src/index.ts` : barrel export complet
@@ -85,7 +85,7 @@ Un PromisePool qui limite la concurrence de façon fiable, avec des helpers `par
 - Zéro dépendance runtime intentionnel
 
 ---
-*Last updated: 2026-03-24 after v1.1 milestone*
+*Last updated: 2026-03-24 after v1.2 milestone*
 
 **Build :**
 - Dual-format: CJS + ESM avec déclarations TypeScript universelles
@@ -128,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-03-24 after v1.0 milestone completion and v1.1 milestone planning*
+*Last updated: 2026-03-24 after v1.0 milestone completion and v1.2 milestone planning*

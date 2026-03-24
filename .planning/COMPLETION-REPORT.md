@@ -248,7 +248,7 @@ The package is fully configured for npm publication:
 - Announce release on GitHub discussions
 - Monitor npm package stats and early user feedback
 
-### Planning Next Milestone (v1.1 or v2.0)
+### Planning Next Milestone (v1.2 or v2.0)
 
 The backlog for future work:
 - **AsyncIterator support**: Stream pool results asynchronously (design still evolving)
@@ -266,7 +266,7 @@ All v1.0 artifacts have been archived to `.planning/milestones/`:
 
 Original planning files remain in `.planning/` for reference:
 - `.planning/phases/*/` — All phase directories with plans, summaries, UAT records
-- `.planning/ROADMAP.md` — Active roadmap (updated to prepare for v1.1)
+- `.planning/ROADMAP.md` — Active roadmap (updated to prepare for v1.2)
 - `.planning/STATE.md` — Updated with milestone completion timestamp
 
 ---

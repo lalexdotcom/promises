@@ -463,7 +463,7 @@ try {
 - **Coverage**: Error context fields tested in multiple scenarios
 - **Backward Compat**: Verified with explicit test case
 - **Documentation**: Clear examples for all 4 patterns
-- **Code Quality**: Follows existing style, consistent with v1.0/v1.1 patterns
+- **Code Quality**: Follows existing style, consistent with v1.0/v1.2 patterns
 
 ---
 
@@ -525,7 +525,7 @@ Phase 9 expands test coverage to 40+ tests including timeout edge cases. Phase 7
 
 ## Architecture Alignment
 
-### v1.1 Vision: Better Error Debugging
+### v1.2 Vision: Better Error Debugging
 Phase 7 directly supports this vision:
 - ✅ TimeoutError now includes timeout duration (was implicit)
 - ✅ TimeoutError now includes promise reference (was hidden)

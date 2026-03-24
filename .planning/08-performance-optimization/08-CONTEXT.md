@@ -137,7 +137,7 @@ No areas of discretion identified. All major decisions are locked based on phase
 
 ## Deferred Ideas
 
-- **Bulk listener deregistration API:** `pool.*removeAllListeners()` method. Deferred to post-v1.1 (not in scope for Phase 8).
+- **Bulk listener deregistration API:** `pool.*removeAllListeners()` method. Deferred to post-v1.2 (not in scope for Phase 8).
 - **Event coalescing configuration:** Configurable event batching (e.g., `{ batchEmit: true }`). Deferred to v1.2 (requires API surface change).
 - **Detailed performance profiling:** Full async stack traces, timeline analysis. Deferred to profiling tools investigation.
 

@@ -74,7 +74,7 @@ Phase 9 expands the test suite from 70 to 135+ tests and finalizes documentation
 - 7 new test files + updates to index.test.ts (TEST-13 through TEST-18)
 - Advanced Patterns section in README with 5+ working code examples
 - Zero TypeScript strict mode errors
-- 135+ passing tests, ready for v1.1 release
+- 135+ passing tests, ready for v1.2 release
 </objective>
 
 <execution_context>
@@ -1025,7 +1025,7 @@ Validate zero TypeScript errors under `tsc --strict` for src/ and tests/.
 - Event callbacks properly typed
 
 **Action steps:**
-- Ensure tsconfig.json has `"strict": true` enabled (already set in v1.1)
+- Ensure tsconfig.json has `"strict": true` enabled (already set in v1.2)
 - Add verification comment in JSDoc for public API: "TypeScript strict mode compliant"
 - Run validation command and capture output
 - If any errors: fix type annotations, no downcastings to `any`
@@ -1179,7 +1179,7 @@ Review and finalize all documentation for release readiness.
 - Add table of contents if README exceeds 2000 lines
 - Verify code formatting: 2-space indentation, consistent quotes, proper syntax
 
-**Output:** Polish README and JSDoc to publication quality, ready for v1.1 release.
+**Output:** Polish README and JSDoc to publication quality, ready for v1.2 release.
   </action>
   <verify>
     <automated>wc -l README.md && grep -c "Advanced Patterns" README.md</automated>

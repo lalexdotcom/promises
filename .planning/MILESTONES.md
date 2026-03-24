@@ -1,6 +1,6 @@
 # Milestones
 
-## v1.1 Balanced Enhancements (Shipped: 2026-03-24)
+## v1.2 Balanced Enhancements (Shipped: 2026-03-24)
 
 **Phases completed:** 5 phases (phases 5–9), 5 plans, 156 tests passing
 

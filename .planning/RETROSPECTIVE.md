@@ -2,7 +2,7 @@
 
 ---
 
-## Milestone: v1.1 — Balanced Enhancements
+## Milestone: v1.2 — Balanced Enhancements
 
 **Shipped:** 2026-03-24  
 **Phases:** 5 (phases 5–9) | **Plans:** 5 | **Tests:** 156 passing (82 → 156)
@@ -54,4 +54,4 @@
 | Milestone | Tests | LOC (src) | Phases | Duration |
 |-----------|-------|-----------|--------|----------|
 | v1.0      | 31    | ~333      | 4      | 1 day    |
-| v1.1      | 156   | ~520      | 5+3qt  | 1 day    |
+| v1.2      | 156   | ~520      | 5+3qt  | 1 day    |
