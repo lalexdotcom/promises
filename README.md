@@ -307,22 +307,21 @@ for (let i = 0; i < results.length; i++) {
 
 ### Pattern 3: Pool with Error Events + Timeout Context
 
-Combine pool error events (Phase 5) with timeout context for comprehensive monitoring and real-time feedback.
+Combine pool error events with timeout context for comprehensive monitoring. Use the pool's introspection getters to access pool state inside the callback.
 
 ```typescript
 import { pool, TimeoutError } from '@lalex/promises';
 
 const httpPool = pool(10);
 
-httpPool.on('error', (error, context) => {
+httpPool.on('error', (error) => {
   if (error instanceof TimeoutError) {
     const { timeout, promise } = error;
-    const { pendingCount, waitingCount } = context;
     
     logger.warn('Task timeout during batch operation', {
       timeoutMs: timeout,
-      remainingTasks: pendingCount,
-      queuedTasks: waitingCount,
+      remainingTasks: httpPool.pendingCount,
+      queuedTasks: httpPool.waitingCount,
       promiseString: String(promise),
       timestamp: new Date().toISOString(),
     });
@@ -344,7 +343,7 @@ await httpPool.close();
 
 **Use case:** High-volume concurrent operations with monitoring requirements. Observability into timeout patterns across batch execution.
 
-**Error handling tip:** Use error events for telemetry and logging, store context to understand which tasks failed and when. Correlate with PoolEventContext for full picture.
+**Error handling tip:** Use error events for telemetry and logging. Access pool state during the callback via getters (`pendingCount`, `waitingCount`, `runningCount`, etc.) for full situational context.
 
 ### Pattern 4: Nested Timeouts (Composition)
 

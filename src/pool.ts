@@ -142,14 +142,17 @@ export interface PromisePool {
    * Supported events and callback signatures:
    * - `'start'`, `'full'`, `'next'`, `'close'`, `'available'`: `() => void`
    * - `'resolve'`: `(result: unknown) => void` — fires per-promise when it resolves
-   * - `'error'`: `(error: unknown, context?: PoolEventContext) => void` — fires per-promise on rejection
+   * - `'error'`: `(error: unknown) => void` — fires per-promise on rejection
+   *
+   * To access pool state inside an error handler, use the pool's introspection
+   * getters (`runningCount`, `waitingCount`, etc.) directly.
    *
    * @param event - Event type
    * @param callback - Listener function (signature depends on event type)
    */
-  on(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
   on(event: 'resolve', callback: (result: unknown) => void): void;
-  on(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
+  on(event: 'error', callback: (error: unknown) => void): void;
 
   /**
    * Registers a one-time listener for a pool lifecycle event.
@@ -160,9 +163,9 @@ export interface PromisePool {
    * @param event - Event type
    * @param callback - Listener function (signature depends on event type); invoked once then deregistered
    */
-  once(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
   once(event: 'resolve', callback: (result: unknown) => void): void;
-  once(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
+  once(event: 'error', callback: (error: unknown) => void): void;
 }
 
 export type PoolOptions = {
@@ -250,16 +253,16 @@ class PromisePoolImpl implements PromisePool {
     }
   }
 
-  on(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
   on(event: 'resolve', callback: (result: unknown) => void): void;
-  on(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
+  on(event: 'error', callback: (error: unknown) => void): void;
   on(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void) {
     (this.#listeners[type] ??= new Map()).set(cb, false);
   }
 
-  once(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
   once(event: 'resolve', callback: (result: unknown) => void): void;
-  once(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
+  once(event: 'error', callback: (error: unknown) => void): void;
   once(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void) {
     (this.#listeners[type] ??= new Map()).set(cb, true);
   }
@@ -450,16 +453,9 @@ class PromisePoolImpl implements PromisePool {
     const promiseIndex = this.#running.indexOf(p);
     if (promiseIndex >= 0) {
       this.#running.splice(promiseIndex, 1);
-      // Emit 'error' event per-promise with error and current pool context (always, before rejectOnError handling)
-      const context: PoolEventContext = {
-        runningCount: this.#running.length,
-        waitingCount: this.#enqueued.length,
-        pendingCount: this.#running.length + this.#enqueued.length,
-        isStarted: this.#isStarted,
-        isClosed: this.#isClosed,
-        isResolved: this.#isResolved,
-      };
-      this.#emit('error', error, context);
+      // Emit 'error' event per-promise (always, before rejectOnError handling).
+      // Pool state is accessible via pool getters (runningCount, waitingCount, etc.)
+      this.#emit('error', error);
       this.#rejectedCount++;
       this.result[index] = new PoolErrorImpl(
         `Promise ${index} was rejected`,

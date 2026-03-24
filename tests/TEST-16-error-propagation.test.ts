@@ -3,15 +3,15 @@ import { pool, wait } from '../src/index';
 
 describe('TEST-16: Error Propagation & Event Ordering', () => {
   /* ────────────────────────────────────────────────────────────────────────
-     Error Event Context: runningCount, waitingCount, pool state flags
+     Error Handling: pool state accessible via getters inside error callback
      ──────────────────────────────────────────────────────────────────────── */
-  describe('Error Event Context', () => {
-    test('error event context has accurate runningCount', async () => {
+  describe('Error Handling via Getters', () => {
+    test('error callback receives the error — pool runningCount accessible via getter', async () => {
       const p = pool(2, { rejectOnError: false });
-      const errorContexts: any[] = [];
+      const runningAtError: number[] = [];
 
-      p.on('error', (error: any, context: any) => {
-        errorContexts.push(context);
+      p.on('error', () => {
+        runningAtError.push(p.runningCount);
       });
 
       p.enqueue(async () => {
@@ -28,16 +28,17 @@ describe('TEST-16: Error Propagation & Event Ordering', () => {
 
       await p.close();
 
-      expect(errorContexts.length).toBeGreaterThan(0);
-      expect(errorContexts[0].runningCount).toBeDefined();
+      expect(runningAtError.length).toBeGreaterThan(0);
+      expect(runningAtError[0]).toBeDefined();
+      expect(typeof runningAtError[0]).toBe('number');
     });
 
-    test('error event context has accurate waitingCount', async () => {
+    test('pool waitingCount accessible via getter inside error callback', async () => {
       const p = pool(2, { rejectOnError: false });
-      let contextSnapshot: any = null;
+      let waitingAtError = -1;
 
-      p.on('error', (error: any, context: any) => {
-        if (!contextSnapshot) contextSnapshot = context;
+      p.on('error', () => {
+        if (waitingAtError === -1) waitingAtError = p.waitingCount;
       });
 
       for (let i = 0; i < 5; i++) {
@@ -55,16 +56,19 @@ describe('TEST-16: Error Propagation & Event Ordering', () => {
 
       await p.close();
 
-      expect(contextSnapshot).toBeDefined();
-      expect(contextSnapshot.waitingCount).toBeGreaterThanOrEqual(0);
+      expect(waitingAtError).toBeGreaterThanOrEqual(0);
     });
 
-    test('error context includes pool state flags', async () => {
+    test('pool state flags accessible via getters inside error callback', async () => {
       const p = pool(2, { rejectOnError: false });
-      let contextSnapshot: any = null;
+      let stateSnapshot: any = null;
 
-      p.on('error', (error: any, context: any) => {
-        contextSnapshot = context;
+      p.on('error', () => {
+        stateSnapshot = {
+          isStarted: p.isStarted,
+          isClosed: p.isClosed,
+          isResolved: p.isResolved,
+        };
       });
 
       p.enqueue(async () => {
@@ -73,10 +77,10 @@ describe('TEST-16: Error Propagation & Event Ordering', () => {
 
       await p.close();
 
-      expect(contextSnapshot).toBeDefined();
-      expect(contextSnapshot.isStarted).toBeDefined();
-      expect(contextSnapshot.isClosed).toBeDefined();
-      expect(contextSnapshot.isResolved).toBe(false); // Still resolving/executing
+      expect(stateSnapshot).not.toBeNull();
+      expect(stateSnapshot.isStarted).toBeDefined();
+      expect(stateSnapshot.isClosed).toBeDefined();
+      expect(stateSnapshot.isResolved).toBe(false); // Still resolving/executing
     });
   });
 
@@ -200,7 +204,7 @@ describe('TEST-16: Error Propagation & Event Ordering', () => {
       });
 
       // With rejectOnError=true, pool rejects immediately on first error
-      const result = await p.close().catch(e => e);
+      const result = await p.close().catch((e) => e);
       // Result should be an error (pool rejected)
       expect(result instanceof Error).toBe(true);
       // Task 2 may or may not execute depending on timing

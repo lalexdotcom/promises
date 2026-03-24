@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { pool, timeout, TimeoutError, wait, PoolEventContext } from '../src/index';
+import { pool, timeout, TimeoutError, wait } from '../src/index';
 
 /* ────────────────────────────────────────────────────────────────────────
    TEST-01: PromisePool lifecycle
@@ -352,12 +352,12 @@ describe('TEST-07: Resolve & Error Events', () => {
     expect((errors[1] as Error).message).toBe('error2');
   });
 
-  test('error event fires with PoolEventContext', async () => {
-    const contexts: any[] = [];
+  test('error event fires per-promise on rejection', async () => {
+    const errors: unknown[] = [];
     const orig = console.error;
     console.error = () => {};
     const p = pool(2, { autoStart: false });
-    p.on('error', (error, context) => contexts.push(context));
+    p.on('error', (error) => errors.push(error));
 
     p.enqueue(() => Promise.reject(new Error('err1')));
     p.enqueue(() => Promise.reject(new Error('err2')));
@@ -366,16 +366,9 @@ describe('TEST-07: Resolve & Error Events', () => {
     await p.close();
     console.error = orig;
 
-    expect(contexts).toHaveLength(2);
-    contexts.forEach((context) => {
-      expect(context).toBeDefined();
-      expect(context).toHaveProperty('runningCount');
-      expect(context).toHaveProperty('waitingCount');
-      expect(context).toHaveProperty('pendingCount');
-      expect(context).toHaveProperty('isStarted');
-      expect(context).toHaveProperty('isClosed');
-      expect(context).toHaveProperty('isResolved');
-    });
+    expect(errors).toHaveLength(2);
+    expect((errors[0] as Error).message).toBe('err1');
+    expect((errors[1] as Error).message).toBe('err2');
   });
 
   test('error event fires regardless of rejectOnError flag (false)', async () => {
@@ -462,18 +455,18 @@ describe('TEST-07: Resolve & Error Events', () => {
     expect(results[2]).toEqual(arr);
   });
 
-  test('error event context reflects pool state at rejection time', async () => {
-    const contexts: any[] = [];
+  test('pool state accessible via getters during error callback', async () => {
+    const snapshots: any[] = [];
     const orig = console.error;
     console.error = () => {};
     const p = pool(2, { autoStart: false });
 
-    p.on('error', (error, context: any) => {
-      contexts.push({
-        error: (error as Error).message,
-        runningCount: context?.runningCount,
-        waitingCount: context?.waitingCount,
-        isStarted: context?.isStarted,
+    p.on('error', () => {
+      snapshots.push({
+        error: 'caught',
+        runningCount: p.runningCount,
+        waitingCount: p.waitingCount,
+        isStarted: p.isStarted,
       });
     });
 
@@ -487,11 +480,10 @@ describe('TEST-07: Resolve & Error Events', () => {
     await p.close();
     console.error = orig;
 
-    // Both errors should have been caught
-    expect(contexts).toHaveLength(2);
-    contexts.forEach((ctx) => {
-      expect(ctx.isStarted).toBe(true);
-      expect(ctx.runningCount).toBeLessThanOrEqual(2);
+    expect(snapshots).toHaveLength(2);
+    snapshots.forEach((snap) => {
+      expect(snap.isStarted).toBe(true);
+      expect(snap.runningCount).toBeLessThanOrEqual(2);
     });
   });
 
@@ -858,16 +850,14 @@ describe('TEST-10: Pool Timeout Context Integration', () => {
   });
 
   test('pool error event and inner TimeoutError have matching context', async () => {
-    let capturedContext: any = null;
     let capturedError: TimeoutError | null = null;
     const orig = console.error;
     console.error = () => {};
     const p = pool(2);
 
-    p.on('error', (error, context) => {
+    p.on('error', (error) => {
       if (error instanceof TimeoutError) {
         capturedError = error;
-        capturedContext = context;
       }
     });
 
@@ -878,8 +868,6 @@ describe('TEST-10: Pool Timeout Context Integration', () => {
     expect(capturedError).not.toBeNull();
     expect(capturedError!.timeout).toBe(30);
     expect(capturedError!.promise).toBeDefined();
-    expect(capturedContext).not.toBeNull();
-    expect(capturedContext!.isStarted).toBe(true);
   });
 });
 
@@ -1138,13 +1126,12 @@ describe('on/once type overloads (compile-time)', () => {
     p.on('available', () => {});
     // resolve — one arg
     p.on('resolve', (_result: unknown) => {});
-    // error — one or two args
+    // error — one arg only
     p.on('error', (_err: unknown) => {});
-    p.on('error', (_err: unknown, _ctx?: PoolEventContext) => {});
     // once mirrors on
     p.once('start', () => {});
     p.once('resolve', (_result: unknown) => {});
-    p.once('error', (_err: unknown, _ctx?: PoolEventContext) => {});
+    p.once('error', (_err: unknown) => {});
   });
 
   test('rejects wrong arity on simple events', () => {
@@ -1159,5 +1146,11 @@ describe('on/once type overloads (compile-time)', () => {
     const p = pool({ concurrency: 1 });
     // @ts-expect-error — 'resolve' callback takes exactly one arg
     p.on('resolve', (_a: unknown, _b: unknown) => {});
+  });
+
+  test('rejects extra args on error event', () => {
+    const p = pool({ concurrency: 1 });
+    // @ts-expect-error — 'error' callback takes exactly one arg (context removed from signature)
+    p.on('error', (_err: unknown, _ctx: unknown) => {});
   });
 });
