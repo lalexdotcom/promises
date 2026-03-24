@@ -11,6 +11,8 @@
 
 ### 5. Event-Driven Pool (Resolve & Error Events)
 
+✅ **Status: Complete** — Phase 5 Summary: [05-SUMMARY.md](05-backpressure-control/05-SUMMARY.md)
+
 **Goal:** Add `'resolve'` event (per-promise resolution with result) and `'error'` event (per-promise rejection with context).
 
 **Key Changes:**
@@ -21,11 +23,16 @@
 - Add comprehensive tests for both events
 
 **Testing:** Per-promise event firing, result/error payload validation, event ordering  
-**Deliverable:** `src/pool.ts` updated, tests passing (40+), event documentation
+**Deliverable:** `src/pool.ts` updated, tests passing (41), event documentation
+
+**Plans:**
+- [x] 06-01-PLAN.md — Add counter fields and increments (Wave 1)
 
 ---
 
 ### 6. Pool Introspection & Health Monitoring
+
+🔄 **Status: Planning** — Phase 6 Plan: [06-PLAN.md](06-pool-introspection/06-PLAN.md)
 
 **Goal:** Add read-only getters for comprehensive pool health monitoring: configuration, execution state, and settlement tracking.
 
@@ -41,7 +48,10 @@
 - Test state transition invariants: waitingCount + runningCount + settledCount = totalEnqueued
 
 **Testing:** Getter accuracy across full lifecycle, settlement tracking validation, no performance impact  
-**Deliverable:** `src/pool.ts` getters, counter tracking in promiseDone/promiseRejected, tests passing (40+)
+**Deliverable:** `src/pool.ts` getters, counter tracking in promiseDone/promiseRejected, tests passing (50+)
+
+**Plans:**
+- [ ] 06-PLAN.md — Complete plan with 15 tasks across 3 waves (Wave 1: counters, Wave 2: getters, Wave 3: tests)
 
 ---
 
