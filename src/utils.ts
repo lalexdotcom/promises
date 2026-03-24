@@ -14,8 +14,35 @@ export function wait(delay = 0) {
  * Thrown when a promise does not settle within the allowed duration.
  * Raised by {@link timeout} and by {@link PromisePool.enqueue} when a
  * per-promise timeout is set via `enqueue(fn, timeoutMs)`.
+ *
+ * Optional context fields populated by timeout() and pool.enqueue():
+ * - `timeout`: The timeout duration in milliseconds that was exceeded
+ * - `promise`: The promise that did not settle within the timeout duration
+ *
+ * These fields are always present when TimeoutError is thrown by timeout(),
+ * but may be undefined if the error is created elsewhere.
  */
-export class TimeoutError extends Error {}
+export class TimeoutError extends Error {
+  /**
+   * The timeout duration in milliseconds that was exceeded.
+   * Present when TimeoutError is thrown by timeout() or pool.enqueue.
+   * Undefined for TimeoutErrors thrown from other sources.
+   */
+  timeout?: number;
+
+  /**
+   * The promise that did not settle within the timeout duration.
+   * Captured at rejection time for debugging timeout root-cause.
+   * This is the original promise passed to timeout(), before any wrapping.
+   * Undefined for TimeoutErrors thrown from other sources.
+   */
+  promise?: unknown;
+
+  constructor(message?: string) {
+    super(message ?? 'Promise timed out');
+    this.name = 'TimeoutError';
+  }
+}
 
 /**
  * Races a Promise against a timeout. If the promise does not settle
@@ -23,9 +50,25 @@ export class TimeoutError extends Error {}
  * {@link TimeoutError}. A late resolution (after timeout) is silently ignored.
  * A rejection from `p` before the timeout is propagated normally.
  *
+ * When TimeoutError is thrown, it includes:
+ * - `timeout` field: the deadline duration in milliseconds
+ * - `promise` field: the original promise that was raced
+ *
  * @param p - The promise to race against the deadline.
  * @param delay - Timeout duration in milliseconds.
  * @throws {TimeoutError} If `p` does not settle within `delay` milliseconds.
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const result = await timeout(fetchData(), 5000);
+ * } catch (err) {
+ *   if (err instanceof TimeoutError) {
+ *     console.log(`Timed out after ${err.timeout}ms`);
+ *     console.log(`Promise that timed out: ${err.promise}`);
+ *   }
+ * }
+ * ```
  */
 export function timeout<T>(p: Promise<T>, delay: number): Promise<T> {
   return new Promise((res, rej) => {
@@ -35,7 +78,10 @@ export function timeout<T>(p: Promise<T>, delay: number): Promise<T> {
       if (!isResolved) {
         isTooLate = true;
         clearTimeout(to);
-        rej(new TimeoutError('Promise timed out'));
+        const err = new TimeoutError(`Promise timed out after ${delay}ms`);
+        err.timeout = delay;
+        err.promise = p;
+        rej(err);
       }
     }, delay);
     p.then((v) => {
