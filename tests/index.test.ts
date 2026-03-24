@@ -468,7 +468,7 @@ describe('TEST-07: Resolve & Error Events', () => {
     console.error = () => {};
     const p = pool(2, { autoStart: false });
 
-    p.on('error', (error, context) => {
+    p.on('error', (error, context: any) => {
       contexts.push({
         error: (error as Error).message,
         runningCount: context?.runningCount,

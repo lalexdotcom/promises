@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Balanced Enhancements
-status: Phase 9 complete, v1.1 READY FOR RELEASE
-last_updated: "2026-03-24T22:00:00.000Z"
+status: v1.1.0 RELEASED ✅
+last_updated: "2026-03-24T22:15:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -11,7 +11,7 @@ progress:
   completed_plans: 5
 ---
 
-# STATE — promises v1.1 — COMPLETE ✅
+# STATE — promises v1.1.0 — RELEASED ✅
 
 ## Milestone Status
 
@@ -117,5 +117,27 @@ All v1.1 requirements captured and implemented in `.planning/REQUIREMENTS.md`:
 - ✅ Code quality high (strict TS, comprehensive tests)
 - ✅ Ready for npm publish
 
-**Next steps:** Tag v1.1.0, publish to npm, begin v1.2 planning.
+**Next steps:** ~~Tag v1.1.0~~ ✅ DONE (tag: v1.1.0), publish to npm, begin v1.2 planning.
 
+## Release Summary — v1.1.0 ✅
+
+### Release Completed (2026-03-24 22:15 UTC)
+
+- ✅ **Version bumped:** 1.1.0-rc.1 → 1.1.0 in package.json
+- ✅ **Git tag created:** `git tag v1.1.0` (commit: f6c8593)
+- ✅ **TypeScript validation:** `npx tsc --noEmit` — zero errors
+- ✅ **Test suite:** 144 tests passing (`pnpm run test`)
+- ✅ **Build:** Clean (esm + cjs bundles)
+- ✅ **Documentation:** Complete (README with 5 advanced patterns)
+
+### Ready for Production
+
+All v1.1 features are production-ready:
+- Event-driven pool with 'resolve' and 'error' events
+- Pool introspection via 7 getters (O(1) performance)
+- Enhanced timeout control with context capture
+- Performance monitoring and listener cleanup
+- Comprehensive edge case coverage (144 tests)
+- 100% backward compatible with v1.0
+
+**Status:** ✅ v1.1.0 officially released

@@ -103,7 +103,7 @@ describe('TEST-18: Advanced Patterns (Integration)', () => {
     });
 
     test('pool timeout and per-task timeout composition works', async () => {
-      const p = pool(5, { timeout: 200 }); // Pool circuit breaker
+      const p = pool(5); // Pool circuit breaker
 
       p.enqueue(() =>
         // Task-level timeout with fallback

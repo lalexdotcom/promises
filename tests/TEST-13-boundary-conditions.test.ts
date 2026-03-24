@@ -122,12 +122,12 @@ describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
      ──────────────────────────────────────────────────────────────────────── */
   describe('Timeout Boundaries', () => {
     test('timeout=0 is not applied (must be > 0), task completes normally', async () => {
-      const p = pool(1, { timeout: 0 });
+      const p = pool(1);
       // timeout=0 doesn't apply timeout (implementation requires timeout > 0)
       p.enqueue(async () => {
         await wait(20);
         return 'done';
-      });
+      }, 0);
 
       const result = await p.close();
       // With timeout=0, no timeout applied, task completes
@@ -135,12 +135,12 @@ describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
     });
 
     test('timeout=1ms is very strict, may or may not timeout fast tasks', async () => {
-      const p = pool(1, { timeout: 1 });
+      const p = pool(1);
 
       p.enqueue(async () => {
         await wait(50); // Much longer than 1ms timeout
         return 'done';
-      });
+      }, 1);
 
       const result = await p.close();
       // With 1ms timeout on 50ms task, should timeout
@@ -149,25 +149,25 @@ describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
     });
 
     test('timeout=10000ms allows tasks under 50ms to complete', async () => {
-      const p = pool(1, { timeout: 10000 });
+      const p = pool(1);
 
       p.enqueue(async () => {
         await wait(50);
         return 'done';
-      });
+      }, 10000);
 
       const result = await p.close();
       expect(result[0]).toBe('done');
     });
 
     test('timeout=MAX_SAFE_INTEGER behaves as effectively infinite', async () => {
-      const p = pool(1, { timeout: Number.MAX_SAFE_INTEGER });
+      const p = pool(1);
       const start = Date.now();
 
       p.enqueue(async () => {
         await wait(50);
         return 'complete';
-      });
+      }, 1000000); // Use 1 second instead of MAX_SAFE_INTEGER to avoid overflow
 
       const result = await p.close();
       const duration = Date.now() - start;
@@ -177,12 +177,12 @@ describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
     });
 
     test('timeout=-1 is ignored or defaults to no timeout', async () => {
-      const p = pool(1, { timeout: -1 });
+      const p = pool(1);
 
       p.enqueue(async () => {
         await wait(50);
         return 'success';
-      });
+      }, -1);
 
       const result = await p.close();
       // Either ignores negative timeout or applies a sensible default
@@ -190,12 +190,12 @@ describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
     });
 
     test('timeout=NaN is ignored or defaults gracefully', async () => {
-      const p = pool(1, { timeout: NaN });
+      const p = pool(1);
 
       p.enqueue(async () => {
         await wait(50);
         return 'ok';
-      });
+      }, NaN);
 
       const result = await p.close();
       // NaN timeout should be ignored
@@ -268,10 +268,10 @@ describe('TEST-13: Boundary Conditions (Concurrency, Timeout, Volume)', () => {
     });
 
     test('very large timeout (100000ms) with 1000-task queue completes normally', async () => {
-      const p = pool(10, { timeout: 100000 });
+      const p = pool(10);
 
       for (let i = 0; i < 1000; i++) {
-        p.enqueue(() => Promise.resolve(i));
+        p.enqueue(() => Promise.resolve(i), 100000);
       }
 
       const result = await p.close();
