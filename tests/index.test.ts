@@ -536,7 +536,9 @@ describe('TEST-07: Resolve & Error Events', () => {
     console.error = () => {};
     const p = pool(2);
 
-    p.on('resolve', (result) => events.push({ type: 'resolve', payload: result }));
+    p.on('resolve', (result) =>
+      events.push({ type: 'resolve', payload: result }),
+    );
     p.on('error', (error) => events.push({ type: 'error', payload: error }));
 
     p.enqueue(() => Promise.resolve(1));
@@ -549,11 +551,11 @@ describe('TEST-07: Resolve & Error Events', () => {
     console.error = orig;
 
     expect(events).toHaveLength(5);
-    const resolveEvents = events.filter(e => e.type === 'resolve');
-    const errorEvents = events.filter(e => e.type === 'error');
+    const resolveEvents = events.filter((e) => e.type === 'resolve');
+    const errorEvents = events.filter((e) => e.type === 'error');
     expect(resolveEvents).toHaveLength(3);
     expect(errorEvents).toHaveLength(2);
-    expect(resolveEvents.map(e => e.payload)).toEqual([1, 3, 5]);
+    expect(resolveEvents.map((e) => e.payload)).toEqual([1, 3, 5]);
   });
 
   test('resolve event with complex result objects', async () => {
@@ -896,7 +898,7 @@ describe('TEST-09: TimeoutError Context Fields', () => {
 
   test('timeout value matches the delay passed to timeout()', async () => {
     const delays = [10, 50, 100, 500];
-    
+
     for (const delay of delays) {
       try {
         await timeout(wait(1000), delay);
@@ -910,7 +912,7 @@ describe('TEST-09: TimeoutError Context Fields', () => {
   test('promise field is the exact promise passed to timeout()', async () => {
     const createPromise = () => wait(1000);
     const p = createPromise();
-    
+
     try {
       await timeout(p, 20);
       throw new Error('Should have timed out');
@@ -1001,7 +1003,13 @@ describe('TEST-11: Memory Cleanup & Listener Deregistration', () => {
     const p = pool(2, { autoStart: false });
 
     // Register listeners on all event types
-    const lifecycleEvents = ['start', 'full', 'next', 'available', 'close'] as const;
+    const lifecycleEvents = [
+      'start',
+      'full',
+      'next',
+      'available',
+      'close',
+    ] as const;
     const listenerCounts: Record<string, number> = {};
 
     for (const event of lifecycleEvents) {
@@ -1204,7 +1212,9 @@ describe('TEST-12: Performance Instrumentation', () => {
       // Metrics collection should not cause significant slowdown
       // (This is an informational test — no hard threshold, just log the result)
       console.log = originalLog;
-      console.log(`[Test Metric] 100-task pool with metrics: ${elapsed.toFixed(2)}ms`);
+      console.log(
+        `[Test Metric] 100-task pool with metrics: ${elapsed.toFixed(2)}ms`,
+      );
     } finally {
       console.log = originalLog;
     }

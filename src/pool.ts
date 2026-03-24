@@ -9,7 +9,14 @@ type QueuedPromise = {
 
 const DEFAULT_CONCURRENCY = 10;
 const DEFAULT_PARALLEL_CONCURRENCY = 10;
-type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available' | 'resolve' | 'error';
+type POOL_EVENT_TYPE =
+  | 'start'
+  | 'full'
+  | 'next'
+  | 'close'
+  | 'available'
+  | 'resolve'
+  | 'error';
 
 /**
  * A concurrency-bounded promise pool. Enqueue async work, control how many
@@ -133,7 +140,10 @@ export interface PromisePool {
    * @param callback - Listener function (signature depends on event type)
    * @returns An unsubscribe function — call it to remove the listener
    */
-  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  on(
+    event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>,
+    callback: () => void,
+  ): () => void;
   on(event: 'resolve', callback: (result: unknown) => void): () => void;
   on(event: 'error', callback: (error: unknown) => void): () => void;
 
@@ -147,7 +157,10 @@ export interface PromisePool {
    * @param callback - Listener function (signature depends on event type); invoked once then deregistered
    * @returns An unsubscribe function — call it to remove the listener before it fires
    */
-  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  once(
+    event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>,
+    callback: () => void,
+  ): () => void;
   once(event: 'resolve', callback: (result: unknown) => void): () => void;
   once(event: 'error', callback: (error: unknown) => void): () => void;
 }
@@ -217,7 +230,9 @@ class PromisePoolImpl implements PromisePool {
   #resolve!: (value: unknown[]) => void;
   #reject!: (reason?: unknown) => void;
 
-  #listeners: Partial<Record<POOL_EVENT_TYPE, Map<(...args: any[]) => void, boolean>>> = {};
+  #listeners: Partial<
+    Record<POOL_EVENT_TYPE, Map<(...args: any[]) => void, boolean>>
+  > = {};
 
   #metrics = {
     eventCount: 0,
@@ -237,7 +252,10 @@ class PromisePoolImpl implements PromisePool {
     }
   }
 
-  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  on(
+    event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>,
+    callback: () => void,
+  ): () => void;
   on(event: 'resolve', callback: (result: unknown) => void): () => void;
   on(event: 'error', callback: (error: unknown) => void): () => void;
   on(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void): () => void {
@@ -245,7 +263,10 @@ class PromisePoolImpl implements PromisePool {
     return () => this.#listeners[type]?.delete(cb);
   }
 
-  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  once(
+    event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>,
+    callback: () => void,
+  ): () => void;
   once(event: 'resolve', callback: (result: unknown) => void): () => void;
   once(event: 'error', callback: (error: unknown) => void): () => void;
   once(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void): () => void {
@@ -282,10 +303,8 @@ class PromisePoolImpl implements PromisePool {
     promiseGenerator: P,
     timeout: number = Number.NaN,
   ) {
-    if (this.#isClosed)
-      throw new Error('PromisePool already closed');
-    if (this.#isResolved)
-      throw new Error('PromisePool already performed');
+    if (this.#isClosed) throw new Error('PromisePool already closed');
+    if (this.#isResolved) throw new Error('PromisePool already performed');
     this.#enqueued.push({
       index: this.currentIndex++,
       generator: promiseGenerator,
@@ -345,7 +364,9 @@ class PromisePoolImpl implements PromisePool {
           const duration = this.#metrics.endTime - this.#metrics.startTime;
           // Log informational metrics (no assertions, no test failures)
           if (typeof console !== 'undefined') {
-            console.log(`[PromisePool] Metrics: ${this.#metrics.eventCount} events, ${duration.toFixed(2)}ms elapsed`);
+            console.log(
+              `[PromisePool] Metrics: ${this.#metrics.eventCount} events, ${duration.toFixed(2)}ms elapsed`,
+            );
           }
           // Note: 'resolve' event is reserved for per-promise resolutions (emitted
           // in promiseDone). Pool completion is detected via isResolved getter or by
