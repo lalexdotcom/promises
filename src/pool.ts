@@ -9,7 +9,25 @@ type QueuedPromise = {
 
 const DEFAULT_CONCURRENCY = 10;
 const DEFAULT_PARALLEL_CONCURRENCY = 10;
-type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available' | 'resolve';
+type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available' | 'resolve' | 'error';
+
+/**
+ * Context object provided with 'error' event listener, containing pool state snapshot at rejection time.
+ */
+export interface PoolEventContext {
+  /** Number of promises currently executing (started but not settled). */
+  runningCount: number;
+  /** Number of promises enqueued but not yet started. */
+  waitingCount: number;
+  /** Total promises not yet settled (runningCount + waitingCount). */
+  pendingCount: number;
+  /** `true` if pool has started. */
+  isStarted: boolean;
+  /** `true` if pool has been closed. */
+  isClosed: boolean;
+  /** `true` if pool has fully resolved. */
+  isResolved: boolean;
+}
 
 /**
  * A concurrency-bounded promise pool. Enqueue async work, control how many
@@ -79,19 +97,26 @@ export interface PromisePool {
   /**
    * Registers a persistent listener for a pool lifecycle event.
    *
-   * @param event - `'start'` | `'full'` | `'next'` | `'close'` | `'available'` | `'resolve'`
-   * @param callback - Invoked each time the event fires.
+   * Supported events and callback signatures:
+   * - `'start'`, `'full'`, `'next'`, `'close'`, `'available'`: `() => void`
+   * - `'resolve'`: `(result: unknown) => void` — fires per-promise when it resolves
+   * - `'error'`: `(error: unknown, context?: PoolEventContext) => void` — fires per-promise on rejection
+   *
+   * @param event - Event type
+   * @param callback - Listener function (signature depends on event type)
    */
-  on(event: POOL_EVENT_TYPE, callback: () => void): void;
+  on(event: POOL_EVENT_TYPE, callback: (...args: unknown[]) => void): void;
 
   /**
    * Registers a one-time listener for a pool lifecycle event.
    * The listener is automatically removed after its first invocation.
    *
-   * @param event - `'start'` | `'full'` | `'next'` | `'close'` | `'available'` | `'resolve'`
-   * @param callback - Invoked once, then deregistered.
+   * Supported events and callback signatures: same as `on()` method.
+   *
+   * @param event - Event type
+   * @param callback - Listener function (signature depends on event type); invoked once then deregistered
    */
-  once(event: POOL_EVENT_TYPE, callback: () => void): void;
+  once(event: POOL_EVENT_TYPE, callback: (...args: unknown[]) => void): void;
 }
 
 export type PoolOptions = {
@@ -154,12 +179,12 @@ class PromisePoolImpl implements PromisePool {
   #resolve!: (value: unknown[]) => void;
   #reject!: (reason?: unknown) => void;
 
-  #listeners: Partial<Record<POOL_EVENT_TYPE, Map<() => void, boolean>>> = {};
+  #listeners: Partial<Record<POOL_EVENT_TYPE, Map<(...args: unknown[]) => void, boolean>>> = {};
 
-  #emit(type: POOL_EVENT_TYPE) {
+  #emit(type: POOL_EVENT_TYPE, ...args: unknown[]) {
     if (this.#listeners[type]) {
       for (const [cb, once] of this.#listeners[type]!) {
-        cb();
+        cb(...args);
         // ES2015+ Map allows safe deletion of entries during for...of iteration —
         // no deferred post-loop cleanup needed.
         if (once) this.#listeners[type]?.delete(cb);
@@ -167,11 +192,11 @@ class PromisePoolImpl implements PromisePool {
     }
   }
 
-  on(type: POOL_EVENT_TYPE, cb: () => void) {
+  on(type: POOL_EVENT_TYPE, cb: (...args: unknown[]) => void) {
     (this.#listeners[type] ??= new Map()).set(cb, false);
   }
 
-  once(type: POOL_EVENT_TYPE, cb: () => void) {
+  once(type: POOL_EVENT_TYPE, cb: (...args: unknown[]) => void) {
     (this.#listeners[type] ??= new Map()).set(cb, true);
   }
 
