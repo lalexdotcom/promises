@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { pool, timeout, TimeoutError, wait } from '../src/index';
+import { pool, TimeoutError, timeout, wait } from '../src/index';
 
 /* ────────────────────────────────────────────────────────────────────────
    TEST-01: PromisePool lifecycle
@@ -952,7 +952,7 @@ describe('TEST-10: Pool Timeout Context Integration', () => {
   });
 
   test('error event receives TimeoutError with context intact', async () => {
-    let timeoutErrors: TimeoutError[] = [];
+    const timeoutErrors: TimeoutError[] = [];
     const orig = console.error;
     console.error = () => {};
     const p = pool(2);
