@@ -2,16 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: — Publication-Ready Library
-status: completed
-last_updated: "2026-03-23T21:10:00.000Z"
-completed: "2026-03-23T20:45:00.000Z"
+status: v1.0 milestone complete
+last_updated: "2026-03-24T07:03:23.518Z"
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 5
-  completed_plans: 5
-  total_requirements: 24
-  completed_requirements: 24
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # STATE — promises
@@ -27,6 +24,7 @@ All 4 phases complete, all 24 requirements satisfied, all verification/UAT passe
 A zero-dependency TypeScript promise utility library (`PromisePool` + async helpers `wait`, `timeout`, `unsync`, `slice`) — now fully corrected, tested, documented, and configured for npm publication.
 
 **v1.0 Achievements:**
+
 - All 4 known bugs fixed and validated via comprehensive test suite
 - Type system upgraded with proper inference (pool.parallel/serial overloads)
 - 31 tests passing (21 pool + 10 utils), zero failures
