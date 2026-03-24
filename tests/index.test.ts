@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { pool, timeout, TimeoutError, wait } from '../src/index';
+import { pool, timeout, TimeoutError, wait, PoolEventContext } from '../src/index';
 
 /* ────────────────────────────────────────────────────────────────────────
    TEST-01: PromisePool lifecycle
@@ -1121,5 +1121,43 @@ describe('TEST-12: Performance Instrumentation', () => {
     } finally {
       console.log = originalLog;
     }
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+   on/once type overloads (compile-time)
+   ──────────────────────────────────────────────────── */
+describe('on/once type overloads (compile-time)', () => {
+  test('correct signatures compile without errors', () => {
+    const p = pool({ concurrency: 1 });
+    // Simple events — no args
+    p.on('start', () => {});
+    p.on('full', () => {});
+    p.on('next', () => {});
+    p.on('close', () => {});
+    p.on('available', () => {});
+    // resolve — one arg
+    p.on('resolve', (_result: unknown) => {});
+    // error — one or two args
+    p.on('error', (_err: unknown) => {});
+    p.on('error', (_err: unknown, _ctx?: PoolEventContext) => {});
+    // once mirrors on
+    p.once('start', () => {});
+    p.once('resolve', (_result: unknown) => {});
+    p.once('error', (_err: unknown, _ctx?: PoolEventContext) => {});
+  });
+
+  test('rejects wrong arity on simple events', () => {
+    const p = pool({ concurrency: 1 });
+    // @ts-expect-error — 'start' callback takes no args
+    p.on('start', (_x: number) => {});
+    // @ts-expect-error — 'full' callback takes no args
+    p.once('full', (_x: string) => {});
+  });
+
+  test('rejects wrong arity on resolve event', () => {
+    const p = pool({ concurrency: 1 });
+    // @ts-expect-error — 'resolve' callback takes exactly one arg
+    p.on('resolve', (_a: unknown, _b: unknown) => {});
   });
 });
