@@ -2,69 +2,74 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Balanced Enhancements
-status: Phase 5 complete, Phase 6 ready for planning
-last_updated: "2026-03-24T14:15:00.000Z"
+status: Phase 6 complete, Phase 7 ready for planning
+last_updated: "2026-03-24T15:45:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # STATE — promises v1.1
 
 ## Milestone Status
 
-**MILESTONE v1.1 ACTIVE — Phase 5 Complete ✅**
+**MILESTONE v1.1 ACTIVE — Phase 6 Complete ✅**
 
-✅ v1.0 shipped. ✅ v1.1 planning complete. ✅ **Phase 5 complete with all 3 waves executed.**
+✅ v1.0 shipped. ✅ v1.1 planning complete. ✅ **Phase 5 & 6 complete with all waves executed.**
 
-### Phase 5 Complete (2026-03-24)
-- ✅ Wave 1: Type system changes (POOL_EVENT_TYPE + PoolEventContext interface)
-- ✅ Wave 2: Implementation (resolve & error event emissions with proper context)
-- ✅ Wave 3: Testing (10 new test scenarios, all 41 tests pass)
-- ✅ 100% success criteria met
-- ✅ Zero breaking changes
-- ✅ Clean TypeScript build
+### Phase 6 Complete (2026-03-24)
+- ✅ Wave 1: Private counters (#resolvedCount, #rejectedCount) with post-resolution guard increments
+- ✅ Wave 2: 7 read-only getters (concurrency, runningCount, waitingCount, pendingCount, resolvedCount, rejectedCount, settledCount)
+- ✅ Wave 3: 7 comprehensive test scenarios with invariant validation
+- ✅ 100% success criteria met (49 tests total, 7 new, all passing)
+- ✅ Zero breaking changes, backward compatible with existing 'running' and 'waiting'
+- ✅ Clean TypeScript build, O(1) getter performance
 
-**v1.1 Refocus (March 24, 2026):**
-- Rejected `maxQueueSize` option (concurrency already handles limiting)
-- Recentered on **Event-Driven Pool**: `'resolve'` and `'error'` events ✅ COMPLETE
-- All requirements updated; all phase specifications adjusted
-- Phase 6 now ready: `/gsd-plan-phase 6`
+**v1.1 Progress (March 24, 2026):**
+- Phase 5 ✅: Event-Driven Pool (`'resolve'` and `'error'` events)
+- Phase 6 ✅: Pool Introspection (7 getters for health monitoring)
+- Phase 7 🔜: Timeout Enhancements (error context in TimeoutError)
 
 **5 Focused Phases:**
-- Phase 5 — Event-Driven Pool (resolve & error events) ✅ COMPLETE
-- Phase 6 — Queue Introspection (getters for monitoring) 🔜 NEXT
-- Phase 7 — Timeout Enhancements (error context)
+- Phase 5 — Event-Driven Pool ✅ COMPLETE
+- Phase 6 — Pool Introspection ✅ COMPLETE
+- Phase 7 — Timeout Enhancements 🔜 NEXT
 - Phase 8 — Performance Optimization (scheduler batching)
 - Phase 9 — Edge Cases & Documentation Polish
 
-**Scope:** Balanced — Features (events), Introspection (getters), Quality (40+ tests, strict TS)  
+**Scope:** Balanced — Features (events, getters), Introspection, Quality (49+ tests, strict TS)  
 **Target:** 4-6 weeks, maintain zero-dependency goal
 
 ## Milestone Vision
 
-Build upon v1.0's solid foundation with event-driven capabilities:
-- **User value:** Per-promise event reactions (resolve, error), better error debugging via context ✅
-- **Engineering:** Clean event semantics, comprehensive test coverage, strict type safety ✅
-- **Zero breaking changes** (new events, new getters, enriched errors — all backward compatible) ✅
+Build upon v1.0's solid foundation with event-driven capabilities and observability:
+- **User value:** Per-promise event reactions ✅, pool health monitoring ✅, better error debugging (Phase 7)
+- **Engineering:** Clean event semantics ✅, introspection getters ✅, comprehensive test coverage ✅
+- **Zero breaking changes** (all new features are additions only) ✅
 
 ## Requirements Status
 
 All v1.1 requirements captured and updated in `.planning/REQUIREMENTS.md`:
 - **FR-1** `'resolve'` event — per-promise with result ✅ COMPLETE
 - **FR-2** `'error'` event — per-promise with context ✅ COMPLETE
-- **FR-3** Queue Introspection getters (Phase 6)
-- **FR-4** Timeout Enhancements (Phase 7)
-- **FR-4** Extended Timeout Control (future phase)
+- **FR-3** Pool Introspection getters ✅ COMPLETE
+- **FR-4** Extended Timeout Control (Phase 7)
 - **PR-1 to PR-3:** Performance improvements
 - **QR-1 to QR-3:** Quality enhancements (tests, TypeScript, docs)
 - **NFR-1 to NFR-2:** Build compatibility, release readiness
 
-## Phase 5 Planning Complete
+### Phase 6 Key Metrics
+- **Tests:** 49 total (42 before, +7 new) — all passing
+- **Coverage:** Invariants validated at all lifecycle points
+- **Implementation:** 77 lines added to src/pool.ts
+- **Commits:** 2 atomic (implementation + tests)
+- **Backward compat:** 100% (old 'running'/'waiting' still work)
 
-**CONTEXT.md:** `.planning/05-backpressure-control/05-CONTEXT.md` — Design decisions locked  
-**PLAN.md:** `.planning/05-backpressure-control/05-PLAN.md` — 12 tasks, 3-wave execution strategy
+## Phase 7 Planning Ready
 
-**Ready for Execution:** `/gsd-execute-phase 5`
+**CONTEXT.md:** `.planning/07-timeout-control/07-CONTEXT.md` — Design decisions locked  
+**PLAN.md:** `.planning/07-timeout-control/07-PLAN.md` — Tasks ready for execution
+
+**Ready for Execution:** `/gsd-execute-phase 7`
