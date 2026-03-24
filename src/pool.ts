@@ -147,7 +147,9 @@ export interface PromisePool {
    * @param event - Event type
    * @param callback - Listener function (signature depends on event type)
    */
-  on(event: POOL_EVENT_TYPE, callback: (...args: unknown[]) => void): void;
+  on(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  on(event: 'resolve', callback: (result: unknown) => void): void;
+  on(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
 
   /**
    * Registers a one-time listener for a pool lifecycle event.
@@ -158,7 +160,9 @@ export interface PromisePool {
    * @param event - Event type
    * @param callback - Listener function (signature depends on event type); invoked once then deregistered
    */
-  once(event: POOL_EVENT_TYPE, callback: (...args: unknown[]) => void): void;
+  once(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  once(event: 'resolve', callback: (result: unknown) => void): void;
+  once(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
 }
 
 export type PoolOptions = {
@@ -226,7 +230,7 @@ class PromisePoolImpl implements PromisePool {
   #resolve!: (value: unknown[]) => void;
   #reject!: (reason?: unknown) => void;
 
-  #listeners: Partial<Record<POOL_EVENT_TYPE, Map<(...args: unknown[]) => void, boolean>>> = {};
+  #listeners: Partial<Record<POOL_EVENT_TYPE, Map<(...args: any[]) => void, boolean>>> = {};
 
   #metrics = {
     eventCount: 0,
@@ -246,11 +250,17 @@ class PromisePoolImpl implements PromisePool {
     }
   }
 
-  on(type: POOL_EVENT_TYPE, cb: (...args: unknown[]) => void) {
+  on(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  on(event: 'resolve', callback: (result: unknown) => void): void;
+  on(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
+  on(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void) {
     (this.#listeners[type] ??= new Map()).set(cb, false);
   }
 
-  once(type: POOL_EVENT_TYPE, cb: (...args: unknown[]) => void) {
+  once(event: 'start' | 'full' | 'next' | 'close' | 'available', callback: () => void): void;
+  once(event: 'resolve', callback: (result: unknown) => void): void;
+  once(event: 'error', callback: (error: unknown, context?: PoolEventContext) => void): void;
+  once(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void) {
     (this.#listeners[type] ??= new Map()).set(cb, true);
   }
 
