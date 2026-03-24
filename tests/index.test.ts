@@ -268,3 +268,224 @@ describe('TEST-06: pool.parallel() and pool.serial()', () => {
     expect(result).toEqual([]);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────
+   TEST-07: Resolve & Error Events (Phase 5)
+   ────────────────────────────────────────────────────── */
+describe('TEST-07: Resolve & Error Events', () => {
+  test('resolve event fires per promise with result value', async () => {
+    const resolvedValues: unknown[] = [];
+    const p = pool(3);
+    p.on('resolve', (result) => resolvedValues.push(result));
+
+    p.enqueue(() => Promise.resolve(42));
+    p.enqueue(() => Promise.resolve('hello'));
+    p.enqueue(() => Promise.resolve(true));
+
+    await p.close();
+    expect(resolvedValues).toEqual([42, 'hello', true]);
+  });
+
+  test('resolve event fires before next event', async () => {
+    const eventOrder: string[] = [];
+    const p = pool(1, { autoStart: false });
+
+    p.on('resolve', () => eventOrder.push('resolve'));
+    p.on('next', () => eventOrder.push('next'));
+
+    p.enqueue(() => Promise.resolve('task1'));
+    p.enqueue(() => Promise.resolve('task2'));
+    p.start();
+
+    await p.close();
+
+    // Each task should have resolve→next ordering
+    // First task: next (dequeue) → resolve → next (dequeue second) → resolve
+    expect(eventOrder).toContain('resolve');
+    expect(eventOrder).toContain('next');
+
+    // Find indices: resolve should appear after the first 'next'
+    const firstNextIdx = eventOrder.indexOf('next');
+    const firstResolveIdx = eventOrder.indexOf('resolve');
+    expect(firstResolveIdx).toBeGreaterThan(firstNextIdx);
+  });
+
+  test('error event fires per rejection', async () => {
+    const errors: unknown[] = [];
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2);
+    p.on('error', (error) => errors.push(error));
+
+    p.enqueue(() => Promise.reject(new Error('error1')));
+    p.enqueue(() => Promise.resolve('ok'));
+    p.enqueue(() => Promise.reject(new Error('error2')));
+
+    await p.close();
+    console.error = orig;
+
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toBeInstanceOf(Error);
+    expect((errors[0] as Error).message).toBe('error1');
+    expect(errors[1]).toBeInstanceOf(Error);
+    expect((errors[1] as Error).message).toBe('error2');
+  });
+
+  test('error event fires with PoolEventContext', async () => {
+    const contexts: any[] = [];
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2, { autoStart: false });
+    p.on('error', (error, context) => contexts.push(context));
+
+    p.enqueue(() => Promise.reject(new Error('err1')));
+    p.enqueue(() => Promise.reject(new Error('err2')));
+    p.start();
+
+    await p.close();
+    console.error = orig;
+
+    expect(contexts).toHaveLength(2);
+    contexts.forEach((context) => {
+      expect(context).toBeDefined();
+      expect(context).toHaveProperty('runningCount');
+      expect(context).toHaveProperty('waitingCount');
+      expect(context).toHaveProperty('pendingCount');
+      expect(context).toHaveProperty('isStarted');
+      expect(context).toHaveProperty('isClosed');
+      expect(context).toHaveProperty('isResolved');
+    });
+  });
+
+  test('error event fires regardless of rejectOnError flag (false)', async () => {
+    const errors: unknown[] = [];
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2, { rejectOnError: false });
+    p.on('error', (error) => errors.push(error));
+
+    p.enqueue(() => Promise.reject(new Error('caught')));
+
+    const result = await p.close();
+    console.error = orig;
+
+    // Error event should have fired even though rejectOnError is false
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(Error);
+    // But the error should also be in results as PoolError
+    expect((result[0] as any).catched).toBeInstanceOf(Error);
+  });
+
+  test('error event fires regardless of rejectOnError flag (true)', async () => {
+    const errors: unknown[] = [];
+    const p = pool(2, { rejectOnError: true });
+    p.on('error', (error) => errors.push(error));
+
+    p.enqueue(() => Promise.reject(new Error('fatal')));
+
+    try {
+      await p.close();
+    } catch {
+      // Expected to throw when rejectOnError is true
+    }
+
+    // Error event should have fired even with rejectOnError true
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(Error);
+  });
+
+  test('mixed resolve and error events in single pool', async () => {
+    const events: Array<{ type: string; payload: unknown }> = [];
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2);
+
+    p.on('resolve', (result) => events.push({ type: 'resolve', payload: result }));
+    p.on('error', (error) => events.push({ type: 'error', payload: error }));
+
+    p.enqueue(() => Promise.resolve(1));
+    p.enqueue(() => Promise.reject(new Error('fail')));
+    p.enqueue(() => Promise.resolve(3));
+    p.enqueue(() => Promise.reject(new Error('fail again')));
+    p.enqueue(() => Promise.resolve(5));
+
+    await p.close();
+    console.error = orig;
+
+    expect(events).toHaveLength(5);
+    const resolveEvents = events.filter(e => e.type === 'resolve');
+    const errorEvents = events.filter(e => e.type === 'error');
+    expect(resolveEvents).toHaveLength(3);
+    expect(errorEvents).toHaveLength(2);
+    expect(resolveEvents.map(e => e.payload)).toEqual([1, 3, 5]);
+  });
+
+  test('resolve event with complex result objects', async () => {
+    const results: unknown[] = [];
+    const p = pool(2);
+    p.on('resolve', (result) => results.push(result));
+
+    const obj1 = { id: 1, name: 'foo' };
+    const obj2 = { id: 2, name: 'bar' };
+    const arr = [1, 2, 3];
+
+    p.enqueue(() => Promise.resolve(obj1));
+    p.enqueue(() => Promise.resolve(obj2));
+    p.enqueue(() => Promise.resolve(arr));
+
+    await p.close();
+
+    expect(results).toHaveLength(3);
+    expect(results[0]).toEqual(obj1);
+    expect(results[1]).toEqual(obj2);
+    expect(results[2]).toEqual(arr);
+  });
+
+  test('error event context reflects pool state at rejection time', async () => {
+    const contexts: any[] = [];
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2, { autoStart: false });
+
+    p.on('error', (error, context) => {
+      contexts.push({
+        error: (error as Error).message,
+        runningCount: context?.runningCount,
+        waitingCount: context?.waitingCount,
+        isStarted: context?.isStarted,
+      });
+    });
+
+    // Enqueue 4 tasks: 2 that will run, 2 that will wait
+    p.enqueue(() => wait(30));
+    p.enqueue(() => wait(30));
+    p.enqueue(() => Promise.reject(new Error('err-waiting')));
+    p.enqueue(() => Promise.reject(new Error('err-waiting2')));
+
+    p.start();
+    await p.close();
+    console.error = orig;
+
+    // Both errors should have been caught
+    expect(contexts).toHaveLength(2);
+    contexts.forEach((ctx) => {
+      expect(ctx.isStarted).toBe(true);
+      expect(ctx.runningCount).toBeLessThanOrEqual(2);
+    });
+  });
+
+  test('once() with resolve event registers one-time listener', async () => {
+    let resolveCount = 0;
+    const p = pool(1, { autoStart: false });
+    p.once('resolve', () => resolveCount++);
+
+    p.enqueue(() => Promise.resolve(1));
+    p.enqueue(() => Promise.resolve(2));
+    p.start();
+
+    await p.close();
+
+    // once() should only fire on the first resolve event
+    expect(resolveCount).toBe(1);
+  });
+});

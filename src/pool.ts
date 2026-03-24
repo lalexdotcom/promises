@@ -283,7 +283,9 @@ class PromisePoolImpl implements PromisePool {
         // enqueue() calls.
         if (this.#isClosed) {
           this.#isResolved = true;
-          this.#emit('resolve');
+          // Note: 'resolve' event is reserved for per-promise resolutions (emitted
+          // in promiseDone). Pool completion is detected via isResolved getter or by
+          // awaiting pool.promise.
           this.#resolve(this.result);
         }
       } else {
