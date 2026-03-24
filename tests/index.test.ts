@@ -489,3 +489,230 @@ describe('TEST-07: Resolve & Error Events', () => {
     expect(resolveCount).toBe(1);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────
+   TEST-08: Pool Introspection (getters: concurrency, running/waitingCount, etc)
+   ────────────────────────────────────────────────────── */
+describe('TEST-08: Pool Introspection', () => {
+  test('invariant: runningCount + waitingCount = pendingCount at any time', async () => {
+    const checkpoints: any[] = [];
+    const p = pool(2, { autoStart: false });
+
+    // Enqueue 10 tasks with varying durations
+    for (let i = 0; i < 10; i++) {
+      p.enqueue(() => wait(Math.random() * 50));
+    }
+
+    // Check invariant before start
+    checkpoints.push({
+      label: 'before start',
+      runningCount: p.runningCount,
+      waitingCount: p.waitingCount,
+      pendingCount: p.pendingCount,
+    });
+    expect(p.runningCount + p.waitingCount).toBe(p.pendingCount);
+
+    p.start();
+
+    // Check during execution
+    await Promise.resolve();
+    checkpoints.push({
+      label: 'after start',
+      runningCount: p.runningCount,
+      waitingCount: p.waitingCount,
+      pendingCount: p.pendingCount,
+    });
+    expect(p.runningCount + p.waitingCount).toBe(p.pendingCount);
+
+    await p.close();
+
+    // Check after close
+    expect(p.runningCount + p.waitingCount).toBe(p.pendingCount);
+
+    // All checkpoints must satisfy invariant
+    checkpoints.forEach((cp) => {
+      expect(cp.runningCount + cp.waitingCount).toBe(cp.pendingCount);
+    });
+  });
+
+  test('invariant: resolvedCount + rejectedCount = settledCount always', async () => {
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(3);
+
+    // Enqueue 15 tasks: 10 resolve, 5 reject
+    for (let i = 0; i < 10; i++) {
+      p.enqueue(() => Promise.resolve(i));
+    }
+    for (let i = 0; i < 5; i++) {
+      p.enqueue(() => Promise.reject(new Error(`err${i}`)));
+    }
+
+    await p.close();
+    console.error = orig;
+
+    // After close, verify invariant
+    expect(p.resolvedCount + p.rejectedCount).toBe(p.settledCount);
+    expect(p.settledCount).toBe(15); // All tasks settled
+    expect(p.resolvedCount).toBe(10);
+    expect(p.rejectedCount).toBe(5);
+
+    // Counters should remain stable (not reset or change)
+    expect(p.resolvedCount + p.rejectedCount).toBe(p.settledCount);
+  });
+
+  test('lifecycle: all getters track state correctly through pool lifecycle', async () => {
+    const p = pool(2, { autoStart: false });
+
+    // After creation, before enqueue
+    expect(p.concurrency).toBe(2);
+    expect(p.runningCount).toBe(0);
+    expect(p.waitingCount).toBe(0);
+    expect(p.pendingCount).toBe(0);
+    expect(p.resolvedCount).toBe(0);
+    expect(p.rejectedCount).toBe(0);
+    expect(p.settledCount).toBe(0);
+
+    // After enqueue (before start)
+    for (let i = 0; i < 5; i++) {
+      p.enqueue(() => wait(30));
+    }
+    expect(p.runningCount).toBe(0);
+    expect(p.waitingCount).toBe(5);
+    expect(p.pendingCount).toBe(5);
+    expect(p.settledCount).toBe(0);
+
+    // After start
+    p.start();
+    await Promise.resolve();
+
+    // During execution (2 running, 3 waiting)
+    expect(p.runningCount).toBe(2);
+    expect(p.waitingCount).toBe(3);
+    expect(p.pendingCount).toBe(5);
+    expect(p.resolvedCount + p.rejectedCount).toBe(0); // Nothing settled yet
+
+    // After close
+    await p.close();
+
+    // All settled
+    expect(p.runningCount).toBe(0);
+    expect(p.waitingCount).toBe(0);
+    expect(p.pendingCount).toBe(0);
+    expect(p.settledCount).toBe(5);
+    expect(p.resolvedCount).toBe(5);
+    expect(p.rejectedCount).toBe(0);
+    expect(p.concurrency).toBe(2); // Never changes
+  });
+
+  test('invariant: settledCount + pendingCount = totalEnqueued', async () => {
+    const totalEnqueued = 20;
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(3);
+
+    for (let i = 0; i < totalEnqueued; i++) {
+      p.enqueue(() => {
+        if (i % 4 === 0) return Promise.reject(new Error('fail'));
+        return Promise.resolve(i);
+      });
+    }
+
+    // Check before starting
+    expect(p.settledCount + p.pendingCount).toBe(totalEnqueued);
+
+    await p.close();
+    console.error = orig;
+
+    // Check after close
+    expect(p.settledCount + p.pendingCount).toBe(totalEnqueued);
+    expect(p.settledCount).toBe(totalEnqueued); // All should be settled
+    expect(p.pendingCount).toBe(0); // None should be pending
+  });
+
+  test('getters work correctly with rejectOnError=false (error wrapped)', async () => {
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2, { rejectOnError: false });
+
+    p.enqueue(() => Promise.resolve(1));
+    p.enqueue(() => Promise.reject(new Error('fail')));
+    p.enqueue(() => Promise.resolve(3));
+
+    const results = await p.close();
+    console.error = orig;
+
+    // All 3 tasks settled, regardless of error mode
+    expect(p.settledCount).toBe(3);
+    expect(p.resolvedCount).toBe(2);
+    expect(p.rejectedCount).toBe(1);
+    expect(p.pendingCount).toBe(0);
+    expect(results.length).toBe(3);
+  });
+
+  test('getters update before rejectOnError rejection occurs', async () => {
+    const p = pool(2, { rejectOnError: true });
+
+    p.enqueue(() => Promise.reject(new Error('fatal')));
+
+    try {
+      await p.close();
+    } catch (e) {
+      // Error expected
+    }
+
+    // Even with rejectOnError=true, the rejection was counted before pool rejected
+    expect(p.rejectedCount).toBe(1);
+  });
+
+  test('concurrency getter always returns configured value', () => {
+    const configs = [1, 2, 5, 10, 100];
+
+    for (const conc of configs) {
+      const p = pool(conc);
+      expect(p.concurrency).toBe(conc);
+    }
+
+    // Also test with options
+    const p1 = pool(3, { autoStart: false });
+    expect(p1.concurrency).toBe(3);
+
+    const p2 = pool(7, { autoStart: true, rejectOnError: true });
+    expect(p2.concurrency).toBe(7);
+  });
+
+  test('resolvedCount and rejectedCount are monotonic (never decrease)', async () => {
+    const orig = console.error;
+    console.error = () => {};
+    const samples: number[] = [];
+    const rejSamples: number[] = [];
+
+    const p = pool(2);
+    p.on('resolve', () => {
+      samples.push(p.resolvedCount);
+    });
+    p.on('error', () => {
+      rejSamples.push(p.rejectedCount);
+    });
+
+    for (let i = 0; i < 8; i++) {
+      p.enqueue(() => {
+        if (i % 3 === 0) return Promise.reject(new Error('x'));
+        return Promise.resolve(i);
+      });
+    }
+
+    await p.close();
+    console.error = orig;
+
+    // resolvedCount samples should be non-decreasing
+    for (let i = 1; i < samples.length; i++) {
+      expect(samples[i]).toBeGreaterThanOrEqual(samples[i - 1]);
+    }
+
+    // rejectedCount samples should be non-decreasing
+    for (let i = 1; i < rejSamples.length; i++) {
+      expect(rejSamples[i]).toBeGreaterThanOrEqual(rejSamples[i - 1]);
+    }
+  });
+});
