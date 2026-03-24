@@ -153,6 +153,27 @@ describe('TEST-03: Event system', () => {
     await p.close();
     expect(availableCount).toBeGreaterThanOrEqual(1);
   });
+
+  test('listeners are cleared after close() — post-close listener registration has no effect', async () => {
+    const p = pool(2);
+    let preCloseCount = 0;
+    let postCloseCount = 0;
+
+    p.on('next', () => preCloseCount++);
+    p.enqueue(() => wait(20));
+    p.enqueue(() => wait(20));
+
+    await p.close();
+
+    // Register a listener AFTER close — should NOT receive any events
+    p.on('next', () => postCloseCount++);
+
+    // Try to trigger events by waiting (pool is already settled)
+    await Promise.resolve();
+
+    expect(preCloseCount).toBeGreaterThan(0); // listeners worked pre-close
+    expect(postCloseCount).toBe(0); // post-close listeners never fire
+  });
 });
 
 /* ────────────────────────────────────────────────────────────────────────

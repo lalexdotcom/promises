@@ -330,6 +330,10 @@ class PromisePoolImpl implements PromisePool {
         // enqueue() calls.
         if (this.#isClosed) {
           this.#isResolved = true;
+          // Clear all listeners per D2: explicit resource cleanup
+          for (const lifeCycleListeners of Object.values(this.#listeners)) {
+            lifeCycleListeners?.clear();
+          }
           // Note: 'resolve' event is reserved for per-promise resolutions (emitted
           // in promiseDone). Pool completion is detected via isResolved getter or by
           // awaiting pool.promise.
@@ -448,10 +452,6 @@ class PromisePoolImpl implements PromisePool {
 
   close() {
     this.#isClosed = true;
-    // Clear all listeners per D2: explicit resource cleanup
-    for (const lifeCycleListeners of Object.values(this.#listeners)) {
-      lifeCycleListeners?.clear();
-    }
     this.start();
     return this.#promise;
   }
