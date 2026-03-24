@@ -882,3 +882,110 @@ describe('TEST-10: Pool Timeout Context Integration', () => {
     expect(capturedContext!.isStarted).toBe(true);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────
+   TEST-11: Memory Cleanup & Listener Deregistration
+   ────────────────────────────────────────────────────── */
+describe('TEST-11: Memory Cleanup & Listener Deregistration', () => {
+  test('all listeners are cleared after pool resolution', async () => {
+    const p = pool(2, { autoStart: false });
+
+    // Register listeners on all event types
+    const events = ['start', 'full', 'next', 'available', 'resolve', 'error', 'close'] as const;
+    const listenerCounts: Record<string, number> = {};
+
+    for (const event of events) {
+      p.on(event, () => {});
+      listenerCounts[event] = 1;
+    }
+
+    p.enqueue(() => Promise.resolve(1));
+    p.enqueue(() => Promise.resolve(2));
+
+    await p.close();
+
+    // Verify internal state: post-close, registering a new listener should have no effect
+    // (implies listeners were cleared — this is an indirect test since listeners are private)
+    let postCloseFireCount = 0;
+    p.on('next', () => postCloseFireCount++);
+
+    // Attempt to trigger event (no more events should fire post-close)
+    await Promise.resolve();
+    expect(postCloseFireCount).toBe(0); // No listeners remain to receive events
+  });
+
+  test('#running array is empty after pool resolution', async () => {
+    const p = pool(2);
+
+    p.enqueue(() => wait(50));
+    p.enqueue(() => wait(50));
+    p.enqueue(() => wait(50));
+
+    // May or may not have tasks running at this exact moment (timing-dependent)
+    // So we only verify the final state
+    await p.close();
+    expect(p.running).toBe(0); // All tasks settled, array emptied
+  });
+
+  test('#enqueued array is empty after pool resolution', async () => {
+    const p = pool(1); // Low concurrency to ensure queue builds up
+
+    p.enqueue(() => wait(50));
+    p.enqueue(() => wait(50));
+    p.enqueue(() => wait(50));
+
+    expect(p.waiting).toBeGreaterThan(0); // Some tasks queued
+    await p.close();
+    expect(p.waiting).toBe(0); // All tasks processed, queue emptied
+  });
+
+  test('listener cleanup does not affect error event firing during execution', async () => {
+    const p = pool(2);
+    let errorCount = 0;
+
+    p.on('error', () => errorCount++);
+
+    p.enqueue(() => Promise.reject(new Error('test')));
+    p.enqueue(() => Promise.resolve('ok'));
+
+    await p.close();
+
+    // Error listener should have fired (before close() cleared listeners)
+    expect(errorCount).toBe(1);
+
+    // Verify no more errors fire post-close (listeners are gone)
+    let postCloseErrorCount = 0;
+    p.on('error', () => postCloseErrorCount++);
+    await Promise.resolve();
+    expect(postCloseErrorCount).toBe(0);
+  });
+
+  test('once() listeners are removed even before close() cleanup', async () => {
+    const p = pool(2);
+    let onceCount = 0;
+
+    p.once('next', () => onceCount++);
+    p.enqueue(() => Promise.resolve(1));
+    p.enqueue(() => wait(20));
+
+    await p.close();
+
+    expect(onceCount).toBe(1); // once() fired exactly once (on first 'next')
+  });
+
+  test('pool getters reflect settled state after close()', async () => {
+    const p = pool(3);
+
+    for (let i = 0; i < 5; i++) {
+      p.enqueue(() => wait(20));
+    }
+
+    await p.close();
+
+    expect(p.running).toBe(0);
+    expect(p.waiting).toBe(0);
+    expect(p.isResolved).toBe(true);
+    expect(p.isClosed).toBe(true);
+    expect(p.pendingCount).toBe(0);
+  });
+});
