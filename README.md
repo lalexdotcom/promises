@@ -241,6 +241,168 @@ const processChunked = slice(transformRows, 5_000);
 const output = await processChunked(millionRowArray);
 ```
 
+## Timeout Patterns
+
+Timeout composition enables flexible control over promise deadlines. The `timeout()` function and pool per-task timeouts work together through the `TimeoutError` context fields: `timeout` (duration in ms) and `promise` (original promise reference).
+
+### Pattern 1: Direct Promise Timeout
+
+Race any asynchronous operation against a deadline with immediate context on timeout.
+
+```typescript
+import { timeout, TimeoutError } from '@lalex/promises';
+
+try {
+  const result = await timeout(fetch(url), 3000); // 3s deadline
+  console.log('Success:', result);
+} catch (err) {
+  if (err instanceof TimeoutError) {
+    console.error(`Timeout after ${err.timeout}ms while fetching ${err.promise}`);
+    // err.timeout === 3000
+  }
+}
+```
+
+**Use case:** Single promises with fixed deadlines. Ideal for external API calls, file I/O, database queries.
+
+**Error handling tip:** Catch `TimeoutError` separately from other rejections to distinguish timeouts from business logic errors.
+
+### Pattern 2: Pool with Per-Task Timeout
+
+Enqueue tasks with per-promise deadlines for isolated timeout management and graceful failure handling.
+
+```typescript
+import { pool, PoolError, TimeoutError } from '@lalex/promises';
+
+const imagePool = pool(5); // 5 concurrent downloads
+
+for (const url of imageUrls) {
+  imagePool.enqueue(async () => {
+    const response = await fetch(url);
+    return response.arrayBuffer();
+  }, 3000); // 3s timeout per image
+}
+
+const results = await imagePool.close();
+
+// results[i] is either the resolved value or a PoolError wrapping TimeoutError
+for (let i = 0; i < results.length; i++) {
+  if (results[i] instanceof PoolError) {
+    const poolErr = results[i] as PoolError;
+    if (poolErr.catched instanceof TimeoutError) {
+      const timeoutErr = poolErr.catched as TimeoutError;
+      // timeoutErr.timeout === 3000 (per-image timeout)
+      console.error(`Image ${i} timed out after ${timeoutErr.timeout}ms`);
+    }
+  } else {
+    // Successfully downloaded image
+    processImage(results[i]);
+  }
+}
+```
+
+**Use case:** Batch operations where individual tasks have deadlines but total batch can run longer. Retries and partial success possible.
+
+**Error handling tip:** Check both the pool result type and the wrapped error type to distinguish timeout from other failures.
+
+### Pattern 3: Pool with Error Events + Timeout Context
+
+Combine pool error events (Phase 5) with timeout context for comprehensive monitoring and real-time feedback.
+
+```typescript
+import { pool, TimeoutError } from '@lalex/promises';
+
+const httpPool = pool(10);
+
+httpPool.on('error', (error, context) => {
+  if (error instanceof TimeoutError) {
+    const { timeout, promise } = error;
+    const { pendingCount, waitingCount } = context;
+    
+    logger.warn('Task timeout during batch operation', {
+      timeoutMs: timeout,
+      remainingTasks: pendingCount,
+      queuedTasks: waitingCount,
+      promiseString: String(promise),
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Notify monitoring system, trigger circuit breaker, etc.
+    metrics.increment('timeout.pool', { duration: timeout });
+  }
+});
+
+for (const url of urls) {
+  httpPool.enqueue(async () => {
+    const response = await fetch(url);
+    return response.json();
+  }, 5000); // 5s per request
+}
+
+await httpPool.close();
+```
+
+**Use case:** High-volume concurrent operations with monitoring requirements. Observability into timeout patterns across batch execution.
+
+**Error handling tip:** Use error events for telemetry and logging, store context to understand which tasks failed and when. Correlate with PoolEventContext for full picture.
+
+### Pattern 4: Nested Timeouts (Composition)
+
+Wrap pool operations with outer timeout for global deadline while preserving per-task timeouts for fine-grained control.
+
+```typescript
+import { pool, timeout, TimeoutError } from '@lalex/promises';
+
+// Inner: per-task timeout
+const batchFetchImages = async (urls: string[], taskTimeoutMs: number) => {
+  const imagePool = pool(5);
+  
+  for (const url of urls) {
+    imagePool.enqueue(async () => {
+      const response = await fetch(url);
+      return response.arrayBuffer();
+    }, taskTimeoutMs);
+  }
+  
+  return imagePool.close();
+};
+
+// Outer: global deadline for entire batch
+const BATCH_TIMEOUT_MS = 30000;
+
+try {
+  const allResults = await timeout(
+    batchFetchImages(imageUrls, 2000), // 2s per image
+    BATCH_TIMEOUT_MS // 30s total for entire batch
+  );
+  console.log(`Fetched ${allResults.length} images in time`);
+} catch (err) {
+  if (err instanceof TimeoutError) {
+    const { timeout: outerTimeout, promise } = err;
+    
+    if (outerTimeout === BATCH_TIMEOUT_MS) {
+      // Entire batch exceeded global deadline
+      console.error('Entire batch exceeded 30s deadline — canceling remaining tasks');
+      // Emergency cleanup, circuit breaker, etc.
+    } else {
+      // Individual task timeouts are wrapped in pool results, not bubbling here
+      console.error('Error during batch:', err);
+    }
+  }
+}
+```
+
+**Use case:** Multi-level timeout hierarchies where both per-task and global deadlines matter. Prevents runaway operations while allowing retries within global bounds.
+
+**Error handling tip:** Distinguish timeout sources via `err.timeout` value. Per-task timeouts surface as PoolError wrappings; outer timeout propagates as direct TimeoutError rejection.
+
+**Best Practices:**
+
+- Prefer per-task timeouts (Pool Pattern 2) for fine-grained control and isolation
+- Use global timeouts (Pattern 4, outer) as safety net for runaway batches
+- Combine with error events (Pattern 3) for comprehensive timeout monitoring
+- Store timeout context in logs for post-mortem analysis and performance trending
+
 ## License
 
 MIT
