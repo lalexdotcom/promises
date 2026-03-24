@@ -131,10 +131,11 @@ export interface PromisePool {
    *
    * @param event - Event type
    * @param callback - Listener function (signature depends on event type)
+   * @returns An unsubscribe function — call it to remove the listener
    */
-  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
-  on(event: 'resolve', callback: (result: unknown) => void): void;
-  on(event: 'error', callback: (error: unknown) => void): void;
+  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  on(event: 'resolve', callback: (result: unknown) => void): () => void;
+  on(event: 'error', callback: (error: unknown) => void): () => void;
 
   /**
    * Registers a one-time listener for a pool lifecycle event.
@@ -144,10 +145,11 @@ export interface PromisePool {
    *
    * @param event - Event type
    * @param callback - Listener function (signature depends on event type); invoked once then deregistered
+   * @returns An unsubscribe function — call it to remove the listener before it fires
    */
-  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
-  once(event: 'resolve', callback: (result: unknown) => void): void;
-  once(event: 'error', callback: (error: unknown) => void): void;
+  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  once(event: 'resolve', callback: (result: unknown) => void): () => void;
+  once(event: 'error', callback: (error: unknown) => void): () => void;
 }
 
 export type PoolOptions = {
@@ -235,18 +237,20 @@ class PromisePoolImpl implements PromisePool {
     }
   }
 
-  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
-  on(event: 'resolve', callback: (result: unknown) => void): void;
-  on(event: 'error', callback: (error: unknown) => void): void;
-  on(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void) {
+  on(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  on(event: 'resolve', callback: (result: unknown) => void): () => void;
+  on(event: 'error', callback: (error: unknown) => void): () => void;
+  on(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void): () => void {
     (this.#listeners[type] ??= new Map()).set(cb, false);
+    return () => this.#listeners[type]?.delete(cb);
   }
 
-  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): void;
-  once(event: 'resolve', callback: (result: unknown) => void): void;
-  once(event: 'error', callback: (error: unknown) => void): void;
-  once(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void) {
+  once(event: Exclude<POOL_EVENT_TYPE, 'resolve' | 'error'>, callback: () => void): () => void;
+  once(event: 'resolve', callback: (result: unknown) => void): () => void;
+  once(event: 'error', callback: (error: unknown) => void): () => void;
+  once(type: POOL_EVENT_TYPE, cb: (...args: any[]) => void): () => void {
     (this.#listeners[type] ??= new Map()).set(cb, true);
+    return () => this.#listeners[type]?.delete(cb);
   }
 
   constructor(options?: PoolOptions) {
