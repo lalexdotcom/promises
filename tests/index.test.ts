@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@rstest/core';
-import { pool, TimeoutError, wait } from '../src/index';
+import { pool, timeout, TimeoutError, wait } from '../src/index';
 
 /* ────────────────────────────────────────────────────────────────────────
    TEST-01: PromisePool lifecycle
@@ -714,5 +714,150 @@ describe('TEST-08: Pool Introspection', () => {
     for (let i = 1; i < rejSamples.length; i++) {
       expect(rejSamples[i]).toBeGreaterThanOrEqual(rejSamples[i - 1]);
     }
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+   TEST-09: TimeoutError Context Fields
+   ────────────────────────────────────────────────────── */
+describe('TEST-09: TimeoutError Context Fields', () => {
+  test('timeout() rejection includes timeout field', async () => {
+    try {
+      await timeout(wait(100), 20);
+      throw new Error('Should have timed out');
+    } catch (err) {
+      expect(err).toBeInstanceOf(TimeoutError);
+      expect((err as TimeoutError).timeout).toBe(20);
+    }
+  });
+
+  test('timeout() rejection includes promise field', async () => {
+    const p = wait(100);
+    try {
+      await timeout(p, 20);
+      throw new Error('Should have timed out');
+    } catch (err) {
+      expect(err).toBeInstanceOf(TimeoutError);
+      expect((err as TimeoutError).promise).toBe(p);
+    }
+  });
+
+  test('both timeout and promise fields present together', async () => {
+    const p = new Promise<void>(() => {
+      // Never resolves or rejects
+    });
+    try {
+      await timeout(p, 25);
+      throw new Error('Should have timed out');
+    } catch (err) {
+      expect(err).toBeInstanceOf(TimeoutError);
+      const timeoutErr = err as TimeoutError;
+      expect(timeoutErr.timeout).toBeDefined();
+      expect(timeoutErr.promise).toBeDefined();
+      expect(timeoutErr.timeout).toBe(25);
+      expect(timeoutErr.promise).toBe(p);
+    }
+  });
+
+  test('timeout value matches the delay passed to timeout()', async () => {
+    const delays = [10, 50, 100, 500];
+    
+    for (const delay of delays) {
+      try {
+        await timeout(wait(1000), delay);
+        throw new Error(`Should have timed out for delay ${delay}`);
+      } catch (err) {
+        expect((err as TimeoutError).timeout).toBe(delay);
+      }
+    }
+  });
+
+  test('promise field is the exact promise passed to timeout()', async () => {
+    const createPromise = () => wait(1000);
+    const p = createPromise();
+    
+    try {
+      await timeout(p, 20);
+      throw new Error('Should have timed out');
+    } catch (err) {
+      const timeoutErr = err as TimeoutError;
+      expect(timeoutErr.promise === p).toBe(true); // Reference equality
+    }
+  });
+
+  test('error message includes timeout duration', async () => {
+    try {
+      await timeout(wait(100), 25);
+      throw new Error('Should have timed out');
+    } catch (err) {
+      expect((err as Error).message).toContain('25');
+    }
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+   TEST-10: Pool Timeout Context Integration
+   ────────────────────────────────────────────────────── */
+describe('TEST-10: Pool Timeout Context Integration', () => {
+  test('pool.enqueue with timeout generates TimeoutError with context', async () => {
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2);
+    p.enqueue(() => wait(100), 20);
+    const result = await p.close();
+    console.error = orig;
+
+    const poolError = result[0] as any;
+    expect(poolError).toBeInstanceOf(Error);
+    expect(poolError.catched).toBeInstanceOf(TimeoutError);
+    expect((poolError.catched as TimeoutError).timeout).toBe(20);
+    expect((poolError.catched as TimeoutError).promise).toBeDefined();
+  });
+
+  test('error event receives TimeoutError with context intact', async () => {
+    let timeoutErrors: TimeoutError[] = [];
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2);
+
+    p.on('error', (error) => {
+      if (error instanceof TimeoutError) {
+        timeoutErrors.push(error);
+      }
+    });
+
+    p.enqueue(() => wait(100), 20);
+    await p.close();
+    console.error = orig;
+
+    expect(timeoutErrors.length).toBeGreaterThan(0);
+    expect(timeoutErrors[0].timeout).toBeDefined();
+    expect(timeoutErrors[0].promise).toBeDefined();
+    expect(timeoutErrors[0].timeout).toBe(20);
+  });
+
+  test('pool error event and inner TimeoutError have matching context', async () => {
+    let capturedContext: any = null;
+    let capturedError: TimeoutError | null = null;
+    const orig = console.error;
+    console.error = () => {};
+    const p = pool(2);
+
+    p.on('error', (error, context) => {
+      if (error instanceof TimeoutError) {
+        capturedError = error;
+        capturedContext = context;
+      }
+    });
+
+    p.enqueue(() => wait(100), 30);
+    await p.close();
+    console.error = orig;
+
+    expect(capturedError).not.toBeNull();
+    expect(capturedError!.timeout).toBe(30);
+    expect(capturedError!.promise).toBeDefined();
+    expect(capturedContext).not.toBeNull();
+    expect(capturedContext!.isStarted).toBe(true);
   });
 });
