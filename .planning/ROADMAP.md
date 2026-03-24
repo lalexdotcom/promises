@@ -25,18 +25,23 @@
 
 ---
 
-### 6. Queue Introspection & Health Monitoring
+### 6. Pool Introspection & Health Monitoring
 
-**Goal:** Add read-only getters for pool health monitoring (queueSize, pendingCount).
+**Goal:** Add read-only getters for comprehensive pool health monitoring: configuration, execution state, and settlement tracking.
 
 **Key Changes:**
-- Add getter `queueSize: number` (enqueued-but-not-started tasks)
-- Add getter `pendingCount: number` (started-but-not-finished tasks)
-- O(1) implementation via Map.size / array.length
-- Test state transition invariants
+- Add getter `concurrency: number` (max concurrent promises from PoolOptions)
+- Add getter `runningCount: number` (promises in-flight, not yet settled)
+- Add getter `waitingCount: number` (promises enqueued but not yet started)
+- Add getter `pendingCount: number` (total not yet settled = running + waiting)
+- Add getter `settledCount: number` (total that have settled = resolved + rejected)
+- Add getter `resolvedCount: number` (promises resolved successfully, tracked via `#resolvedCount`)
+- Add getter `rejectedCount: number` (promises rejected, tracked via `#rejectedCount`)
+- O(1) implementation via direct counters and array.length
+- Test state transition invariants: waitingCount + runningCount + settledCount = totalEnqueued
 
-**Testing:** Getter accuracy across lifecycle, no performance impact  
-**Deliverable:** Complete test coverage, health monitoring example
+**Testing:** Getter accuracy across full lifecycle, settlement tracking validation, no performance impact  
+**Deliverable:** `src/pool.ts` getters, counter tracking in promiseDone/promiseRejected, tests passing (40+)
 
 ---
 

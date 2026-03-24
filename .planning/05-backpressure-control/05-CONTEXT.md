@@ -50,19 +50,19 @@ Implement two new event types (`'resolve'` and `'error'`) to enable event-driven
 **Rationale:**
 - Already claimed in v1.0 (TODO-02 design todo captured)
 - User choice to emit first, then respect rejectOnError — prevents silent failures
-- Event context enables debugging: pool state at rejection time (queueSize, pendingCount)
+- Event context enables debugging: pool state at rejection time (runningCount, waitingCount at rejection point)
 - Decouples error notification from error semantics (rejectOnError behavior unchanged)
 
 **Implementation Details:**
 - Event type: callback signature is `(error: unknown, context?: object) => void`
-- Context object (optional): `{ queueSize, pendingCount, isStarted, isClosed, isResolved }`
+- Context object (optional): `{ runningCount, waitingCount, pendingCount, isStarted, isClosed, isResolved }`
 - Timing: **in `promiseRejected()` method**, before respecting rejectOnError flag
 - Always fires: if `rejectOnError=false` → error to results; if `rejectOnError=true` → error to results AND pool rejects on close
 - No change to existing rejectOnError behavior
 
 **Testing:**
 - Unit: enqueue 10 tasks where 5 fail → verify 5 error events with correct error objects
-- Context validation: error event context includes accurate pool state
+- Context validation: error event context includes accurate pool state (getters from Phase 6)
 - Integration: rejectOnError=true case → error event fires, then pool.close() rejects with error
 - Edge case: rapid failures → no duplicate error events per promise
 
@@ -131,16 +131,22 @@ type POOL_EVENT_TYPE = 'start' | 'full' | 'next' | 'close' | 'available' | 'reso
 
 ## Downstream Impact
 
-**Files to modify:**
+**Phase 5 directly modifies:**
 - `src/pool.ts`: promiseRejected() method → emit 'error' event before error handling
 - `src/pool.ts`: runNext() method → emit 'resolve' event after storing result
 - `src/index.ts`: POOL_EVENT_TYPE export updated
 - `tests/index.test.ts`: 7+ new test cases added
 
+**Phase 6 builds on Phase 5 (depends on error event context):**
+- `src/pool.ts`: promiseDone() → increment #resolvedCount when promise resolves
+- `src/pool.ts`: promiseRejected() → increment #rejectedCount when promise rejects
+- Private counters: add `#resolvedCount = 0` and `#rejectedCount = 0`
+- Add 7 new getters: concurrency, runningCount, waitingCount, pendingCount, settledCount, resolvedCount, rejectedCount
+
 **Documentation:**
 - `README.md`: Events section updated (add 'resolve' and 'error' descriptions)
-- JSDoc: on() and once() methods document new event types
-- Advanced Patterns section: error recovery example using 'error' event
+- `README.md`: Health Monitoring section (examples using Phase 6 getters)
+- JSDoc: on() and once() methods document new event types and error context
 
 **No breaking changes** — new events are additions; existing events unchanged.
 

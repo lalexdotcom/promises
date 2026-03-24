@@ -56,21 +56,28 @@
 
 ---
 
-### FR-3: Queue Introspection Getters (Feature)
+### FR-3: Pool Introspection Getters (Feature)
 
-**User Story:** As a system monitoring pool health, I need read-only insight into current queue and pending task counts.
+**User Story:** As a system monitoring pool health, I need read-only insight into pool configuration, current execution state, and settlement counts.
 
 **Acceptance Criteria:**
-- [ ] Add getter `queueSize: number` — current count of enqueued-but-not-started tasks
-- [ ] Add getter `pendingCount: number` — current count of started-but-not-finished tasks  
-- [ ] Add getter `isBackpressured: boolean` — true if queue at or exceeds maxQueueSize
-- [ ] All three getters return accurate numbers reflecting pool state at call time
-- [ ] Getters work across all pool states (not-started, running, paused, closed)
-- [ ] No performance regression from adding these (O(1) lookups via Map.size)
+- [ ] Add getter `concurrency: number` — max promises running simultaneously (from PoolOptions)
+- [ ] Add getter `runningCount: number` — promises currently executing (started but not settled)
+- [ ] Add getter `waitingCount: number` — promises enqueued but not yet started
+- [ ] Add getter `pendingCount: number` — total promises not yet settled (runningCount + waitingCount)
+- [ ] Add getter `settledCount: number` — total promises that have settled (resolvedCount + rejectedCount)
+- [ ] Add getter `resolvedCount: number` — promises that resolved successfully
+- [ ] Add getter `rejectedCount: number` — promises that rejected
+- [ ] All getters return accurate numbers reflecting pool state at call time (O(1) operation)
+- [ ] Getters work across all pool states (not-started, running, closed, resolved)
+- [ ] Add private counters: `#resolvedCount` (incremented in promiseDone) and `#rejectedCount` (incremented in promiseRejected)
 
 **Testing:**
-- Invariant test: queueSize + pendingCount + (completed so far) = totalEnqueued
-- State-transition test: verify getters update correctly during start→full→close lifecycle
+- Invariant test: `waitingCount + runningCount = pendingCount` at any point in time
+- Invariant test: `resolvedCount + rejectedCount = settledCount` always  
+- Invariant test: `settledCount + pendingCount = totalEnqueued` at end of execution
+- State-transition test: verify all getters update correctly through start→running→close→resolve lifecycle
+- Settlement tracking: enqueue 10 tasks with mixed success/failure → verify counts accurate after close()
 
 **Backward Compat:** Adding getters = no breaking change.
 
