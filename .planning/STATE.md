@@ -164,3 +164,4 @@ All v1.2 features are production-ready:
 | 260324-e53 | Rename milestone v1.1 → v1.2 across all planning artifacts | 2026-03-24 | 46f848a | [260324-e53-change-last-delivered-milestone-version-](./quick/260324-e53-change-last-delivered-milestone-version-/) |
 | 260324-ea1 | Add pre-commit hook (simple-git-hooks + lint-staged + biome check) | 2026-03-24 | c4b7920 | [260324-ea1-add-pre-commit-hook-to-format-and-lint-c](./quick/260324-ea1-add-pre-commit-hook-to-format-and-lint-c/) |
 | 260324-ej5 | Add tests to pre-commit hook | 2026-03-24 | 271a45b | [260324-ej5-add-tests-to-pre-commit-hook](./quick/260324-ej5-add-tests-to-pre-commit-hook/) |
+| 260324-elj | Add TypeScript typecheck and build to pre-commit hook | 2026-03-24 | a113ae6 | [260324-elj-add-typescript-type-check-and-build-to-p](./quick/260324-elj-add-typescript-type-check-and-build-to-p/) |
