@@ -45,10 +45,11 @@
 		"lint": "biome check .",
 		"prepare": "simple-git-hooks",
 		"test": "rstest",
+		"typecheck": "tsc --noEmit",
 		"test:watch": "rstest --watch"
 	},
 	"simple-git-hooks": {
-		"pre-commit": "pnpm exec lint-staged && pnpm test"
+		"pre-commit": "pnpm exec lint-staged && pnpm typecheck && pnpm run build && pnpm test"
 	},
 	"lint-staged": {
 		"*.{ts,js}": "biome check --write"
