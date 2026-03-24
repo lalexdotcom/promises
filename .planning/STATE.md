@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Balanced Enhancements
 status: v1.1.0 RELEASED ✅
-last_updated: "2026-03-24T22:15:00.000Z"
+last_updated: "2026-03-24T22:30:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -141,3 +141,9 @@ All v1.1 features are production-ready:
 - 100% backward compatible with v1.0
 
 **Status:** ✅ v1.1.0 officially released
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260324-ctm | Improve on() and once() event listener typing with TypeScript overloads | 2026-03-24 | 0d2ab69 | [260324-ctm-improve-on-and-once-event-listener-typin](./quick/260324-ctm-improve-on-and-once-event-listener-typin/) |
