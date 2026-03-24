@@ -1,39 +1,62 @@
-# v1.1 Requirements — Balanced Enhancements
+# v1.1 Requirements — Event-Driven Enhancements
 
-**Milestone Goal:** Enhance pool performance, add backpressure control, improve quality through edge case testing and better error context — while maintaining strict backward compatibility with breaking-change-allowed policy (v1.x minor bumps).
+**Milestone Goal:** Enhance pool with rich event semantics (`'resolve'` per-promise, `'error'` on rejection with context), better error debugging, and comprehensive test coverage — maintaining zero-dependency goal and strict backward compatibility.
 
-**Scope:** 4-6 focused phases (~3-4 weeks) mixing features, performance, and quality improvements.
+**Scope:** 5 focused phases (~3-4 weeks) mixing features, performance, and quality improvements.
 
-**Target:** Node.js 18+ and modern browsers equally. Lean into event-driven backpressure signaling.
+**Target:** Node.js 18+ and modern browsers equally. Lean into event-driven patterns.
 
 ---
 
 ## Functional Requirements
 
-### FR-1: Backpressure Control (Feature)
+### FR-1: Resolve Event (Per-Promise Resolution Notification)
 
-**User Story:** As a batch processor handling unbounded workloads, I need to pause enqueueing when the queue grows too large, preventing memory bloat.
+**User Story:** As an event-driven application, I need to react to each individual promise resolution with its result value — not just pool completion.
 
 **Acceptance Criteria:**
-- [ ] Add `maxQueueSize?: number` option to `PoolOptions` (default: unbounded/Infinity)
-- [ ] When queue reaches `maxQueueSize`, `enqueue()` returns `false` (fail silently, no throw)
-- [ ] Emit `'paused'` event when enqueue fails due to backpressure
-- [ ] Emit `'resumed'` event when queue drops below threshold and enqueue succeeds again
-- [ ] Getter `isBackpressured: boolean` reflects current state
-- [ ] Event firing order invariant: paused→resumed→paused only (no duplicates)
-- [ ] Works with both `autoStart: true` and `autoStart: false`
-- [ ] `close()` clears paused state (no dangling resumed events after close)
+- [ ] Add `'resolve'` event type to POOL_EVENT_TYPE union
+- [ ] When a promise resolves successfully, emit `'resolve'` event with the result value
+- [ ] Emit timing: immediately after storing result in `#results`, **before** emitting `'next'`
+- [ ] Event signature: `pool.on('resolve', (result: unknown) => {...})`
+- [ ] Each promise resolution fires exactly one `'resolve'` event (no duplicates)
+- [ ] Update JSDoc for `on()` / `once()` to document `'resolve'` event
+- [ ] Update POOL_EVENT_TYPE in type definitions
 
 **Testing:**
-- Batch workload test with bounded queue + success callback on resumed
-- Verify no message loss if user re-enqueues failed tasks
-- Edge case: `maxQueueSize` of 0 (max rejection), large sizes (millions)
+- Per-promise resolution test: enqueue 10 tasks → verify 10 'resolve' events fire with correct results
+- Event ordering: resolve fires before 'next' for each task
+- Result value matching: verify event payload matches `#results` array entry
 
-**Backward Compat:** Adding optional option = no breaking change.
+**Backward Compat:** Adding new event type = no breaking change (existing code unaffected).
 
 ---
 
-### FR-2: Queue Introspection Getters (Feature)
+### FR-2: Error Event (Per-Promise Rejection Notification)
+
+**User Story:** As an error-handling application, I need real-time notification when promises reject — not silent storage or propagation.
+
+**Acceptance Criteria:**
+- [ ] Add `'error'` event type to POOL_EVENT_TYPE union
+- [ ] When a promise rejects, **always** emit `'error'` event with error object
+- [ ] Event signature: `pool.on('error', (error: unknown, context?: PoolState) => {...})`
+- [ ] Include optional context field with pool state at rejection time: `{ queueSize, pendingCount, isStarted, isClosed, isResolved }`
+- [ ] Emit timing: before respecting `rejectOnError` flag (event always fires regardless)
+- [ ] If `rejectOnError=false`: error goes to `#results` array (after event)
+- [ ] If `rejectOnError=true`: error stored AND pool will reject on close (after event)
+- [ ] Each promise rejection fires exactly one `'error'` event
+- [ ] Update JSDoc, POOL_EVENT_TYPE, tests
+
+**Testing:**
+- Per-rejection test: enqueue 10 tasks where 5 fail → verify 5 'error' events with correct errors
+- Context accuracy: verify pool state snapshot in event context
+- rejectOnError interaction: verify event fires in both rejectOnError=true and false cases
+
+**Backward Compat:** Adding new event type = no breaking change.
+
+---
+
+### FR-3: Queue Introspection Getters (Feature)
 
 **User Story:** As a system monitoring pool health, I need read-only insight into current queue and pending task counts.
 
@@ -55,7 +78,11 @@
 
 ### FR-3: Extended Timeout Control (Feature)
 
-**User Story:** As a timeout-sensitive application, I need finer control over deadline propagation and timeout error context.
+---
+
+### FR-4: Extended Timeout Control (Feature)
+
+**User Story:** As a timeout-sensitive application, I need finer control over deadline propagation and better timeout error context for debugging.
 
 **Acceptance Criteria:**
 - [ ] Enhance `TimeoutError` with optional `timeout: number` and `promise: unknown` fields for context
@@ -69,24 +96,6 @@
 - Nested timeout test: inner timeout fires before outer (correct precedence)
 
 **Backward Compat:** New fields on error type are optional = backward compatible.
-
----
-
-### FR-4: Backpressure Documentation (Feature)
-
-**User Story:** As a developer learning advanced pool features, I need clear guidance on when and how to use backpressure.
-
-**Acceptance Criteria:**
-- [ ] Add section in README under "Advanced Usage" → "Backpressure & Flow Control"
-- [ ] Explain maxQueueSize, paused/resumed events, and enqueue return value semantics
-- [ ] Example: HTTP client limiting concurrent requests while respecting queue bounds
-- [ ] Example: Batch job processor pausing uploads when memory queue exceeds threshold
-- [ ] Link to specific events in API table ("paused", "resumed")
-- [ ] Show how to implement retry-on-backpressure pattern
-
-**Testing:**
-- Docs are consumable (no invalid API references)
-- Examples are runnable and tested as part of test suite (or doc-tests)
 
 ---
 
@@ -151,11 +160,13 @@
 **Acceptance Criteria:**
 - [ ] Expand test suite to 40+ test cases (currently 31)
 - [ ] New test categories:
-  - Boundary: concurrency=1, concurrency=1000, queueSize=0, queueSize=1000000
+  - Boundary: concurrency=1, concurrency=1000, extreme timeout values
   - Malformed: negative timeouts, NaN timeout, null options  
   - Rapid lifecycle: start() immediately followed by close(), back-to-back enqueue calls
   - Error propagation: verify rejectOnError=true/false in all pool states
-  - Event ordering: verify event sequence invariants (full→next→close, never out of order)
+  - Event ordering: verify event sequence invariants (resolve→next, error→pool rejection, etc.)
+  - 'resolve' event: per-promise resolution fires with correct result
+  - 'error' event: per-promise rejection fires with correct error and context
 - [ ] All new tests must pass and increase coverage of edge paths
 - [ ] No new tests should slow down suite (suite should remain <1s total)
 
@@ -182,36 +193,20 @@
 
 ---
 
-### QR-3: Error Context Enrichment (Quality)
-
-**User Story:** As a debugger, when a promise in the pool rejects, I need to know what state the pool was in to understand why.
-
-**Acceptance Criteria:**
-- [ ] Enhance PoolError to include optional `state` context field with snapshot of pool state at error time
-  - Fields: `queueSize`, `pendingCount`, `isStarted`, `isClosed`, `isResolved`
-- [ ] When emitting error (promiseRejected), capture state snapshot and attach to PoolError
-- [ ] PoolError message improved: include queueSize and pendingCount in message if available
-- [ ] TimeoutError already has context (timeout value + promise) — verified working
-
-**Testing:**
-- Error test verifies PoolError.state contains queue/pending counts
-- Stress test: error during high load includes accurate state snapshot
-
----
-
-### QR-4: Documentation of Advanced Patterns (Quality)
+### QR-3: Documentation of Advanced Patterns (Quality)
 
 **User Story:** As a power user, I need reference material for off-the-beaten-path use cases.
 
 **Acceptance Criteria:**
 - [ ] README section: "Advanced Patterns"
-  - Pattern 1: Backpressure (linked to FR-4)
-  - Pattern 2: Timeout composition (linked to FR-3)
-  - Pattern 3: Error recovery (re-enqueue failed tasks)
-  - Pattern 4: Pool composition (pool of pools, or sequence of pools)
+  - Pattern 1: Error recovery via 'error' event (real-time error handling)
+  - Pattern 2: Result streaming via 'resolve' event (per-promise reactions)
+  - Pattern 3: Timeout composition (chaining timeouts, wrapping pool with deadline)
+  - Pattern 4: Error context inspection (reading pool state from error event)
+  - Pattern 5: Pool composition (pool of pools, or sequence of pools)
 - [ ] Each pattern includes runnable example code
 - [ ] Link from JSDoc to README sections where relevant
-- [ ] No promises made about features not in v1.1 (defer AsyncIterator discussion to v2)
+- [ ] No promises made about features not in v1.1 (defer AsyncIterator, retry strategies to v2)
 
 **Testing:**
 - Examples are copied into Rstest and run as tests (or at least linted/type-checked)

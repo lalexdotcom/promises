@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Balanced Enhancements
 status: v1.1 milestone active
-last_updated: "2026-03-24T12:30:00.000Z"
+last_updated: "2026-03-24T12:45:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 0
@@ -15,51 +15,55 @@ progress:
 
 ## Milestone Status
 
-**MILESTONE v1.1 ACTIVE — Phase 5 Ready**
+**MILESTONE v1.1 ACTIVE — Phase 5 Ready for Planning**
 
-✅ v1.0 archived and shipped. v1.1 planning complete. 5 focused phases identified:
-- Phase 5 — Backpressure Control System
-- Phase 6 — Queue Introspection & Health Monitoring
-- Phase 7 — Timeout Enhancements & Error Context
-- Phase 8 — Performance Optimization & Memory Audit
-- Phase 9 — Edge Case Expansion & Documentation Polish
+✅ v1.0 shipped. ✅ v1.1 planning complete. ✅ Phase 5 context established.
 
-**Scope:** Balanced — Features (backpressure, introspection, timeout) + Performance (scheduler batching, memory audit) + Quality (40+ tests, strict TS, error context)  
-**Target:** 4-6 weeks, 5 phases, maintain zero-dependency goal
+**v1.1 Refocus (March 24, 2026):**
+- Rejected `maxQueueSize` option (concurrency already handles limiting)
+- Recentered on **Event-Driven Pool**: `'resolve'` and `'error'` events
+- All requirements updated; all phase specifications adjusted
+- Phase 5 now ready: `/gsd-plan-phase 5`
+
+**5 Focused Phases:**
+- Phase 5 — Event-Driven Pool (resolve & error events)
+- Phase 6 — Queue Introspection (getters for monitoring)
+- Phase 7 — Timeout Enhancements (error context)
+- Phase 8 — Performance Optimization (scheduler batching)
+- Phase 9 — Edge Cases & Documentation Polish
+
+**Scope:** Balanced — Features (events), Introspection (getters), Quality (40+ tests, strict TS)  
+**Target:** 4-6 weeks, maintain zero-dependency goal
 
 ## Milestone Vision
 
-Build upon v1.0's solid foundation with production enhancements:
-- **User value:** Backpressure control for memory-bounded workloads, better error debugging via state context
-- **Engineering:** Optimized scheduler, comprehensive edge case coverage, strict type safety
-- **Zero breaking changes** (optional features, new events, enriched errors)
+Build upon v1.0's solid foundation with event-driven capabilities:
+- **User value:** Per-promise event reactions (resolve, error), better error debugging via context
+- **Engineering:** Clean event semantics, comprehensive test coverage, strict type safety
+- **Zero breaking changes** (new events, new getters, enriched errors — all backward compatible)
 
 ## Requirements Status
 
-All v1.1 requirements captured in `.planning/REQUIREMENTS.md`:
-- **FR-1 to FR-4:** Functional features (backpressure, introspection, timeout, documentation)
-- **PR-1 to PR-3:** Performance improvements (batching, memory audit, timeout optimization)
-- **QR-1 to QR-4:** Quality enhancements (edge cases, TypeScript strict, error context, advanced docs)
-- **NFR-1 to NFR-2:** Non-functional (build compatibility, release readiness)
-- **4 UAT scenarios** (batch processing, health monitoring, timeout semantics, error recovery)
+All v1.1 requirements captured and updated in `.planning/REQUIREMENTS.md`:
+- **FR-1** `'resolve'` event — per-promise with result
+- **FR-2** `'error'` event — per-promise with context
+- **FR-3** Queue Introspection getters (future phase)
+- **FR-4** Extended Timeout Control (future phase)
+- **PR-1 to PR-3:** Performance improvements
+- **QR-1 to QR-3:** Quality enhancements (tests, TypeScript, docs)
+- **NFR-1 to NFR-2:** Build compatibility, release readiness
+
+## Phase 5 Context Complete
+
+**CONTEXT.md created:** `.planning/05-backpressure-control/05-CONTEXT.md`
+
+Design decisions locked:
+- ✅ D1: 'resolve' event per-promise with result
+- ✅ D2: 'error' event per-promise always, with context
+- ✅ D3: Reject maxQueueSize (concurrency sufficient)
+- ✅ D4: POOL_EVENT_TYPE extended
+- ✅ D5: Error context via event listener, not PoolError type
 
 ## Ready for Execution
 
 **Next Action:** `/gsd-plan-phase 5`
-
-All planning artifacts in place:
-- ✅ `.planning/PROJECT.md` — Updated with v1.1 goals
-- ✅ `.planning/REQUIREMENTS.md` — Complete with 14 named requirements + UAT scenarios
-- ✅ `.planning/ROADMAP.md` — Phase structure (5-6, 3-4 weeks)
-- ✅ `.planning/STATE.md` — Milestone initialized and ready
-
-**Build Status:** All v1.0 artifacts (src/, tests/, README, package.json) stable and passing.
-
-## Pending Todos
-
-| ID | Title | Area | Created |
-|----|-------|------|---------|
-| TODO-01 | Redesign 'resolve' event — fire per-promise, not pool-wide | features | 2026-03-24 |
-| TODO-02 | Add 'error' event for promise rejection with state context | features | 2026-03-24 |
-
-*Design clarifications needed before Phase 5 execution.*

@@ -9,52 +9,54 @@
 
 ## v1.1 Phases
 
-### 5. Backpressure Control System
+### 5. Event-Driven Pool (Resolve & Error Events)
 
-**Goal:** Add `maxQueueSize` option + paused/resumed event signaling + introspection getters (queueSize, pendingCount, isBackpressured).
+**Goal:** Add `'resolve'` event (per-promise resolution with result) and `'error'` event (per-promise rejection with context).
 
 **Key Changes:**
-- Implement `maxQueueSize?: number` option (default: unbounded)
-- `enqueue()` returns `false` when backpressure reached (no throw)
-- Emit `'paused'` and `'resumed'` events
-- Add three new getters: `queueSize`, `pendingCount`, `isBackpressured`
+- Implement `'resolve'` event: fires when each promise resolves (before 'next')
+- Implement `'error'` event: fires when each promise rejects (always, regardless of rejectOnError)
+- Enhance 'error' event with optional context field (queueSize, pendingCount at rejection time)
+- Update POOL_EVENT_TYPE, JSDoc, TypeScript types
+- Add comprehensive tests for both events
 
-**Testing:** Boundary conditions, rapid pause/resume, queue overflow scenarios  
-**Deliverable:** `src/pool.ts` updated, tests passing, README section added
+**Testing:** Per-promise event firing, result/error payload validation, event ordering  
+**Deliverable:** `src/pool.ts` updated, tests passing (40+), event documentation
 
 ---
 
 ### 6. Queue Introspection & Health Monitoring
 
-**Goal:** Validate getters work reliably across pool lifecycle, confirm O(1) performance.
+**Goal:** Add read-only getters for pool health monitoring (queueSize, pendingCount).
 
 **Key Changes:**
-- Test state transition invariants (queueSize + pendingCount accounting)
-- Performance validation (no overhead from getters)
-- Monitoring pattern documentation
+- Add getter `queueSize: number` (enqueued-but-not-started tasks)
+- Add getter `pendingCount: number` (started-but-not-finished tasks)
+- O(1) implementation via Map.size / array.length
+- Test state transition invariants
 
-**Testing:** Getter accuracy during start→full→next→close, invariant checks  
+**Testing:** Getter accuracy across lifecycle, no performance impact  
 **Deliverable:** Complete test coverage, health monitoring example
 
 ---
 
 ### 7. Timeout Enhancements & Error Context
 
-**Goal:** Improve error debugging with rich context — TimeoutError includes timeout value, PoolError includes pool state at failure.
+**Goal:** Improve error debugging — TimeoutError includes timeout value + promise context.
 
 **Key Changes:**
-- Enhance `TimeoutError` with optional `timeout` and `promise` fields
-- Enhance `PoolError` with optional `state` context (queue/pending/flags)
+- Enhance `TimeoutError` with optional `timeout: number` and `promise: unknown` fields
 - Document timeout composition patterns
+- Advanced timeout examples in README
 
-**Testing:** Error context accuracy, state snapshot validation  
-**Deliverable:** Updated error types, error recovery examples in README
+**Testing:** Error context accuracy from 'resolve' events with error wrapping  
+**Deliverable:** Updated TimeoutError type, timeout composition examples
 
 ---
 
 ### 8. Performance Optimization & Memory Audit
 
-**Goal:** Batch task scheduling in single microtask, validate memory efficiency, benchmark timeout overhead.
+**Goal:** Batch task scheduling, validate memory efficiency, benchmark performance.
 
 **Key Changes:**
 - Refactor `#runNext()` batching (reduce event loop churn)
@@ -62,24 +64,24 @@
 - Memory leak detection tests
 - Performance benchmarks (informational)
 
-**Testing:** No regression post-refactor, leak test confirms clean shutdown  
-**Deliverable:** Optimized scheduler, performance benchmarks, space complexity guarantee documented
+**Testing:** No regression post-refactor, leak tests, benchmark results  
+**Deliverable:** Optimized scheduler, performance validation
 
 ---
 
 ### 9. Edge Case Expansion & Documentation Polish
 
-**Goal:** Expand test suite to 40+ tests, finalize all documentation, validate TypeScript strict mode.
+**Goal:** Expand test suite to 40+ tests, finalize documentation, validate TypeScript strict mode.
 
 **Key Changes:**
-- Boundary tests (concurrency extremes, queueSize extremes)
-- Malformed input tests (negative/NaN timeouts)
+- Boundary tests (concurrency extremes, timeout extremes)
+- Malformed input tests (null options, NaN values)
 - Rapid lifecycle tests (start→close, back-to-back enqueues)
-- Complete README with Advanced Patterns section
+- Advanced Patterns section in README (5+ patterns)
 - TypeScript strict mode validation
 
 **Testing:** 40+ total tests passing, zero TypeScript strict errors  
-**Deliverable:** Release-ready codebase, comprehensive documentation, ready for npm publish
+**Deliverable:** Release-ready codebase, comprehensive documentation
 
 ---
 
