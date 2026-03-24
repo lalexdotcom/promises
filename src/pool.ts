@@ -228,7 +228,14 @@ class PromisePoolImpl implements PromisePool {
 
   #listeners: Partial<Record<POOL_EVENT_TYPE, Map<(...args: unknown[]) => void, boolean>>> = {};
 
+  #metrics = {
+    eventCount: 0,
+    startTime: 0,
+    endTime: 0,
+  };
+
   #emit(type: POOL_EVENT_TYPE, ...args: unknown[]) {
+    this.#metrics.eventCount++;
     if (this.#listeners[type]) {
       for (const [cb, once] of this.#listeners[type]!) {
         cb(...args);
@@ -259,6 +266,7 @@ class PromisePoolImpl implements PromisePool {
   start() {
     if (!this.#isStarted) {
       this.#emit('start');
+      this.#metrics.startTime = performance.now();
       // Defer #isStarted to the next microtask so that enqueue() calls in the
       // same synchronous frame still see #isStarted === false and enqueue normally.
       // runNext() fires once this microtask runs, picking up everything enqueued.
@@ -333,6 +341,12 @@ class PromisePoolImpl implements PromisePool {
           // Clear all listeners per D2: explicit resource cleanup
           for (const lifeCycleListeners of Object.values(this.#listeners)) {
             lifeCycleListeners?.clear();
+          }
+          this.#metrics.endTime = performance.now();
+          const duration = this.#metrics.endTime - this.#metrics.startTime;
+          // Log informational metrics (no assertions, no test failures)
+          if (typeof console !== 'undefined') {
+            console.log(`[PromisePool] Metrics: ${this.#metrics.eventCount} events, ${duration.toFixed(2)}ms elapsed`);
           }
           // Note: 'resolve' event is reserved for per-promise resolutions (emitted
           // in promiseDone). Pool completion is detected via isResolved getter or by
