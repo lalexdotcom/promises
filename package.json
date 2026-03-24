@@ -48,7 +48,7 @@
 		"test:watch": "rstest --watch"
 	},
 	"simple-git-hooks": {
-		"pre-commit": "pnpm exec lint-staged"
+		"pre-commit": "pnpm exec lint-staged && pnpm test"
 	},
 	"lint-staged": {
 		"*.{ts,js}": "biome check --write"
